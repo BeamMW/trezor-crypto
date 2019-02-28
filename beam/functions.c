@@ -2,22 +2,22 @@
 #include <string.h>
 #include "functions.h"
 
-//void init_context()
-//{
-//  CONTEXT.key.Comission = _FOURCC_FROM(fees);
-//  CONTEXT.key.Coinbase  = _FOURCC_FROM(mine);
-//  CONTEXT.key.Regular   = _FOURCC_FROM(norm);
-//  CONTEXT.key.Change    = _FOURCC_FROM(chng);
-//  CONTEXT.key.Kernel    = _FOURCC_FROM(kern);   // tests only
-//  CONTEXT.key.Kernel2   = _FOURCC_FROM(kerM);  // used by the miner
-//  CONTEXT.key.Identity  = _FOURCC_FROM(iden); // Node-Wallet auth
-//  CONTEXT.key.ChildKey  = _FOURCC_FROM(SubK);
-//  CONTEXT.key.Bbs       = _FOURCC_FROM(BbsM);
-//  CONTEXT.key.Decoy     = _FOURCC_FROM(dcoy);
-//  CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
-//
-//  generate_G(CONTEXT.generator.G_pts);
-//}
+void init_context()
+{
+  CONTEXT.key.Comission = _FOURCC_FROM(fees);
+  CONTEXT.key.Coinbase  = _FOURCC_FROM(mine);
+  CONTEXT.key.Regular   = _FOURCC_FROM(norm);
+  CONTEXT.key.Change    = _FOURCC_FROM(chng);
+  CONTEXT.key.Kernel    = _FOURCC_FROM(kern);   // tests only
+  CONTEXT.key.Kernel2   = _FOURCC_FROM(kerM);  // used by the miner
+  CONTEXT.key.Identity  = _FOURCC_FROM(iden); // Node-Wallet auth
+  CONTEXT.key.ChildKey  = _FOURCC_FROM(SubK);
+  CONTEXT.key.Bbs       = _FOURCC_FROM(BbsM);
+  CONTEXT.key.Decoy     = _FOURCC_FROM(dcoy);
+  CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
+
+  generate_G(CONTEXT.generator.G_pts);
+}
 
 void phrase_to_seed(const char *phrase, uint8_t *seed32)
 {
@@ -349,4 +349,169 @@ void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32)
   }
 
   memcpy(out32, p.x, 32);
+}
+
+void create_scalar_nnz(SHA256_CTX *orcale, scalar_t *out_scalar)
+{
+  uint8_t data[32];
+  scalar_clear(out_scalar);
+  do
+  {
+    sha256_Final(orcale, data);
+    sha256_Update(orcale, data, sizeof(data) / sizeof(data[0]));
+  } while (!scalar_import_nnz(out_scalar, data));
+}
+
+void signature_get_challenge(const secp256k1_gej *pt, const uint8_t *msg32, scalar_t *out_scalar)
+{
+  point_t p;
+  secp256k1_gej point;
+  memcpy(&point, pt, sizeof(secp256k1_gej));
+  export_gej_to_point(&point, &p);
+
+  SHA256_CTX oracle;
+  sha256_Init(&oracle);
+  sha256_Update(&oracle, p.x, 32);
+  sha256_Update(&oracle, &p.y, 1);
+  sha256_Update(&oracle, msg32, 32);
+
+  create_scalar_nnz(&oracle, out_scalar);
+}
+
+void signature_sign_partial(const scalar_t *multisig_nonce, const secp256k1_gej *multisig_nonce_pub, const uint8_t *msg, const scalar_t *sk, scalar_t *out_k)
+{
+  signature_get_challenge(multisig_nonce_pub, msg, out_k);
+
+  scalar_mul(out_k, out_k, sk);
+  scalar_add(out_k, out_k, multisig_nonce);
+  scalar_negate(out_k, out_k);
+}
+
+void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, secp256k1_gej *out_nonce_pub, scalar_t *out_k)
+{
+  HMAC_SHA256_CTX secret;
+  uint8_t bytes[32];
+  uint8_t okm[32];
+
+  scalar_get_b32(bytes, sk);
+
+  nonce_generator_init(&secret, (const uint8_t *)"beam-Schnorr", 13);
+  nonce_generator_write(&secret, bytes, 32);
+
+  // random_reseed(time(NULL));
+  random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
+  nonce_generator_write(&secret, bytes, 32);
+
+  scalar_t multisig_nonce;
+  nonce_generator_export_scalar(&secret, NULL, 0, 1, okm, &multisig_nonce);
+  set_mul(out_nonce_pub, generator_pts, multisig_nonce.d, 8);
+
+  signature_sign_partial(&multisig_nonce, out_nonce_pub, msg32, sk, out_k);
+
+  printf(" ---- out_nonce_pub  %d\n", out_nonce_pub->x.n[0]);
+  uint8_t asd[32];
+  scalar_get_b32(asd, &multisig_nonce);
+  DEBUG_PRINT(" ---- multisig_nonce: ", asd, 32);
+  scalar_get_b32(asd, out_k);
+  DEBUG_PRINT(" ---- out_k: ", asd, 32);
+}
+
+void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry)
+{
+  const uint32_t *p = k->d;
+  const uint32_t nWordBits = sizeof(*p) << 3;
+
+  // assert(1 & nMaxOdd); // must be odd
+  unsigned int nVal = 0, nBitTrg = 0;
+
+  while (iBitsRemaining--)
+  {
+    nVal <<= 1;
+    if (nVal > nMaxOdd)
+      break;
+
+    uint32_t n = p[iBitsRemaining / nWordBits] >> (iBitsRemaining & (nWordBits - 1));
+
+    if (1 & n)
+    {
+      nVal |= 1;
+      aux->odd = nVal;
+      nBitTrg = iBitsRemaining;
+    }
+  }
+
+  if (nVal > 0)
+  {
+    aux->next_item = pTbl[nBitTrg];
+    pTbl[nBitTrg] = iThisEntry;
+  }
+}
+
+void gej_mul_scalar(const secp256k1_gej *pt, scalar_t *sk, secp256k1_gej *res)
+{
+  static const int nMaxOdd = (1 << 5) - 1;      // 31
+  static const int nCount = (nMaxOdd >> 1) + 2; // we need a single even: x2
+  static const uint32_t nBytes = 32;
+  static const uint32_t nBits = nBytes << 3;
+
+  secp256k1_gej m_pPt[nCount];
+  m_pPt[1] = *pt;
+
+  fast_aux_t m_Aux;
+  unsigned int m_nPrepared = 1;
+
+  secp256k1_gej_set_infinity(res);
+
+  unsigned int pTblCasual[nBits];
+  unsigned int pTblPrepared[nBits];
+
+  memset(pTblCasual, 0, sizeof(pTblCasual));
+  memset(pTblPrepared, 0, sizeof(pTblPrepared));
+
+  fast_aux_schedule(&m_Aux, sk, nBits, nMaxOdd, pTblCasual, 1);
+
+  for (unsigned int iBit = nBits; iBit--;)
+  {
+    if (!secp256k1_gej_is_infinity(res))
+      secp256k1_gej_double_var(res, res, NULL);
+
+    while (pTblCasual[iBit])
+    {
+      unsigned int iEntry = pTblCasual[iBit];
+      pTblCasual[iBit] = m_Aux.next_item;
+
+      // assert(1 & m_Aux.odd);
+      unsigned int nElem = (m_Aux.odd >> 1) + 1;
+      // assert(nElem < nCount);
+
+      for (; m_nPrepared < nElem; m_nPrepared++)
+      {
+        if (1 == m_nPrepared)
+        {
+          secp256k1_gej_double_var(&m_pPt[0], &m_pPt[1], NULL);
+        }
+        secp256k1_gej_add_var(&m_pPt[m_nPrepared + 1], &m_pPt[m_nPrepared], &m_pPt[0], NULL);
+      }
+
+      secp256k1_gej_add_var(res, res, &m_pPt[nElem], NULL);
+
+      fast_aux_schedule(&m_Aux, sk, iBit, nMaxOdd, pTblCasual, iEntry);
+    }
+  }
+}
+
+int signature_is_valid(const uint8_t *msg32, const secp256k1_gej *nonce_pub, const scalar_t *k, const secp256k1_gej *pk, const secp256k1_gej *generator_pts)
+{
+  scalar_t e;
+  signature_get_challenge(nonce_pub, msg32, &e);
+
+  secp256k1_gej pt;
+  set_mul(&pt, generator_pts, k->d, 8);
+
+  secp256k1_gej mul_pt;
+  gej_mul_scalar(pk, &e, &mul_pt);
+  secp256k1_gej_add_var(&pt, &pt, &mul_pt, NULL);
+  secp256k1_gej_add_var(&pt, &pt, nonce_pub, NULL);
+
+  return secp256k1_gej_is_infinity(&pt) != 0;
 }

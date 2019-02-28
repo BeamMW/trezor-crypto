@@ -1,6 +1,10 @@
+#ifndef _FUNCTIONS_
+#define _FUNCTIONS_
+
 #include "../pbkdf2.h"
 #include "../sha2.h"
 #include "../hmac.h"
+#include "../rand.h"
 #include "lib/scalar32.h"
 #include "lib/group.h"
 
@@ -52,6 +56,12 @@ typedef struct
   generators_t generator;
 } context_t;
 
+typedef struct
+{
+  unsigned int next_item;
+  unsigned int odd;
+} fast_aux_t;
+
 context_t CONTEXT;
 
 #define _COUNT_OF(_Array) (sizeof(_Array) / sizeof(_Array[0]))
@@ -96,3 +106,9 @@ void set_mul(secp256k1_gej *res, const secp256k1_gej *pPts, const uint32_t *p, i
 void generate_G(secp256k1_gej *generator_pts);
 
 void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32);
+
+void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, secp256k1_gej *out_nonce_pub, scalar_t *out_k);
+
+int signature_is_valid(const uint8_t *msg32, const secp256k1_gej *nonce_pub, const scalar_t *k, const secp256k1_gej *pk, const secp256k1_gej *generator_pts);
+
+#endif //_FUNCTIONS_
