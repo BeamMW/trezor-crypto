@@ -4,9 +4,9 @@
 #include "internal.h"
 #include "definitions.h"
 
-context_t CONTEXT;
-
 void init_context();
+
+context_t* get_context();
 
 void phrase_to_seed(const char *phrase, uint8_t *out_seed32);
 

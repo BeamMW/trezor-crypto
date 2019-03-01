@@ -66,6 +66,10 @@ const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
 const int CURVE_B = 7;
 #endif
 
+secp256k1_ge secp256k1_ge_get_const_g() {
+    return secp256k1_ge_const_g;
+}
+
 void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi) {
     secp256k1_fe zi2;
     secp256k1_fe zi3;

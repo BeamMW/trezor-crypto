@@ -41,8 +41,7 @@ typedef struct {
 
 #define SECP256K1_GE_STORAGE_CONST_GET(t) SECP256K1_FE_STORAGE_CONST_GET(t.x), SECP256K1_FE_STORAGE_CONST_GET(t.y)
 
-const secp256k1_ge secp256k1_ge_const_g;
-const int CURVE_B;
+secp256k1_ge secp256k1_ge_get_const_g();
 
 /** Set a group element equal to the point with given X and Y coordinates */
 void secp256k1_ge_set_xy(secp256k1_ge *r, const secp256k1_fe *x, const secp256k1_fe *y);

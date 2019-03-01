@@ -245,7 +245,8 @@ void generate_G(secp256k1_gej *generator_pts)
   sha256_Update(&oracle, (const uint8_t *)"Let the generator generation begin!", 36);
 
   secp256k1_gej G_raw;
-  secp256k1_gej_set_ge(&G_raw, &secp256k1_ge_const_g);
+  secp256k1_ge G_const = secp256k1_ge_get_const_g();
+  secp256k1_gej_set_ge(&G_raw, &G_const);
 
   while (!create_pts(generator_pts, &G_raw, N_LEVELS, &oracle))
     ;

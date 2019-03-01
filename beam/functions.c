@@ -2,6 +2,8 @@
 #include <string.h>
 #include "functions.h"
 
+context_t CONTEXT;
+
 void init_context()
 {
   CONTEXT.key.Comission = _FOURCC_FROM(fees);
@@ -17,6 +19,11 @@ void init_context()
   CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
 
   generate_G(CONTEXT.generator.G_pts);
+}
+
+context_t* get_context()
+{
+  return &CONTEXT;
 }
 
 void phrase_to_seed(const char *phrase, uint8_t *out_seed32)
