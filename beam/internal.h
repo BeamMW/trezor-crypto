@@ -1,10 +1,10 @@
 #ifndef _INTERNAL_FUNCTIONS_
 #define _INTERNAL_FUNCTIONS_
 
-#include "crypto/pbkdf2.h"
-#include "crypto/sha2.h"
-#include "crypto/hmac.h"
-#include "crypto/rand.h"
+#include "../pbkdf2.h"
+#include "../sha2.h"
+#include "../hmac.h"
+#include "../rand.h"
 #include "definitions.h"
 
 void sha256_write_8(SHA256_CTX *hash, uint8_t b);

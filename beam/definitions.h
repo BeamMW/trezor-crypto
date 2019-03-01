@@ -1,8 +1,8 @@
 #ifndef _TYPES_
 #define _TYPES_
 
-#include "3dparty/group.h"
-#include "3dparty/scalar32.h"
+#include "lib/group.h"
+#include "lib/scalar32.h"
 
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
