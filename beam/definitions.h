@@ -40,7 +40,7 @@ typedef struct
 
 typedef struct
 {
-  secp256k1_gej G_pts[N_LEVELS * N_POINTS_PER_LEVEL];
+  secp256k1_gej *G_pts;
 } generators_t;
 
 typedef struct

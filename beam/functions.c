@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "mpconfigport.h"
 #include "functions.h"
 
 context_t CONTEXT;
@@ -18,7 +19,18 @@ void init_context()
   CONTEXT.key.Decoy     = _FOURCC_FROM(dcoy);
   CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
 
+#ifndef BEAM_GENERATE_TABLES
+  CONTEXT.generator.G_pts = malloc(sizeof(secp256k1_gej));
+  secp256k1_ge G_const = secp256k1_ge_get_const_g();
+  secp256k1_gej_set_ge(CONTEXT.generator.G_pts, &G_const);
+#else
+  CONTEXT.generator.G_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
   generate_G(CONTEXT.generator.G_pts);
+#endif
+}
+
+void free_context() {
+  free(CONTEXT.generator.G_pts);
 }
 
 context_t* get_context()

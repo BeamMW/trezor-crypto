@@ -194,6 +194,9 @@ int create_pts(secp256k1_gej *pPts, secp256k1_gej *gpos, uint32_t nLevels, SHA25
 
 void generator_mul_scalar(secp256k1_gej *res, const secp256k1_gej *pPts, const scalar_t* sk)
 {
+#ifndef BEAM_GENERATE_TABLES
+  gej_mul_scalar(pPts, sk, res);
+#else
   const uint32_t *p = sk->d;
   const int nWords = sizeof(sk->d) / sizeof(sk->d[0]);
 
@@ -236,6 +239,7 @@ void generator_mul_scalar(secp256k1_gej *res, const secp256k1_gej *pPts, const s
       bSet = 0;
     }
   }
+#endif
 }
 
 void generate_G(secp256k1_gej *generator_pts)
@@ -308,7 +312,7 @@ void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRem
   }
 }
 
-void gej_mul_scalar(const secp256k1_gej *pt, scalar_t *sk, secp256k1_gej *res)
+void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res)
 {
   static const int nMaxOdd = (1 << 5) - 1;      // 31
   static const int nCount = (nMaxOdd >> 1) + 2; // we need a single even: x2

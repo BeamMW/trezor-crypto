@@ -6,6 +6,8 @@
 
 void init_context();
 
+void free_context();
+
 context_t* get_context();
 
 void phrase_to_seed(const char *phrase, uint8_t *out_seed32);

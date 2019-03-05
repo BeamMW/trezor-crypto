@@ -45,6 +45,6 @@ void signature_sign_partial(const scalar_t *multisig_nonce, const secp256k1_gej 
 
 void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry);
 
-void gej_mul_scalar(const secp256k1_gej *pt, scalar_t *sk, secp256k1_gej *res);
+void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res);
 
 #endif //_INTERNAL_FUNCTIONS_
