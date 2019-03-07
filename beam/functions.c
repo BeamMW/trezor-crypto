@@ -7,6 +7,13 @@ context_t CONTEXT;
 
 void init_context()
 {
+  static uint8_t is_first_init = 1;
+  if (is_first_init)
+  {
+    CONTEXT.generator.G_pts = NULL;
+    is_first_init = 0;
+  }
+  
   CONTEXT.key.Comission = _FOURCC_FROM(fees);
   CONTEXT.key.Coinbase  = _FOURCC_FROM(mine);
   CONTEXT.key.Regular   = _FOURCC_FROM(norm);
@@ -19,6 +26,7 @@ void init_context()
   CONTEXT.key.Decoy     = _FOURCC_FROM(dcoy);
   CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
 
+free_context();
 #ifndef BEAM_GENERATE_TABLES
   CONTEXT.generator.G_pts = malloc(sizeof(secp256k1_gej));
   secp256k1_ge G_const = secp256k1_ge_get_const_g();
@@ -30,7 +38,11 @@ void init_context()
 }
 
 void free_context() {
-  free(CONTEXT.generator.G_pts);
+  if (CONTEXT.generator.G_pts)
+  {
+    free(CONTEXT.generator.G_pts);
+    CONTEXT.generator.G_pts = NULL;
+  }
 }
 
 context_t* get_context()
