@@ -41,6 +41,7 @@ typedef struct
 typedef struct
 {
   secp256k1_gej *G_pts;
+  secp256k1_gej *J_pts;
 } generators_t;
 
 typedef struct
@@ -54,5 +55,14 @@ typedef struct
   unsigned int next_item;
   unsigned int odd;
 } fast_aux_t;
+
+#pragma pack(push, 1)
+typedef struct
+{
+  uint8_t secret[32];
+  point_t pkG;
+  point_t pkJ;
+} HKdf_packed_t;
+#pragma pack(pop)
 
 #endif //_TYPES_

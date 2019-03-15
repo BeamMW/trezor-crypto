@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "mpconfigport.h"
 #include "functions.h"
 
@@ -28,12 +29,14 @@ void init_context()
 
 free_context();
 #ifndef BEAM_GENERATE_TABLES
+  CONTEXT.generator.J_pts = get_generator_J();
   CONTEXT.generator.G_pts = malloc(sizeof(secp256k1_gej));
   secp256k1_ge G_const = secp256k1_ge_get_const_g();
   secp256k1_gej_set_ge(CONTEXT.generator.G_pts, &G_const);
 #else
   CONTEXT.generator.G_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  generate_G(CONTEXT.generator.G_pts);
+  CONTEXT.generator.J_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  generate_points(CONTEXT.generator.G_pts, CONTEXT.generator.J_pts);
 #endif
 }
 
@@ -166,4 +169,36 @@ int signature_is_valid(const uint8_t *msg32, const secp256k1_gej *nonce_pub, con
   secp256k1_gej_add_var(&pt, &pt, nonce_pub, NULL);
 
   return secp256k1_gej_is_infinity(&pt) != 0;
+}
+
+void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, uint32_t index, uint8_t *out32_child_secret, scalar_t *out_child_cof)
+{
+  if (!index)
+  { // by convention 0 is not a child
+    memcpy(out32_child_secret, parent_secret_32, 32);
+    memcpy(out_child_cof, parent_cof, sizeof(scalar_t));
+    return;
+  }
+  uint8_t child_id[32];
+  scalar_t child_key;
+  uint8_t child_scalar_data[32];
+  generate_hash_id(index, CONTEXT.key.ChildKey, 0, child_id);
+  derive_key(parent_secret_32, 32, child_id, 32, parent_cof, &child_key);
+  scalar_get_b32(child_scalar_data, &child_key);
+
+  seed_to_kdf(child_scalar_data, 32, out32_child_secret, out_child_cof);
+}
+
+char *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size)
+{
+  uint8_t child_secret_key[32];
+  scalar_t child_cofactor;
+  get_child_kdf(master_key, master_cof, 1, child_secret_key, &child_cofactor);
+
+  HKdf_packed_t packed;
+  generate_HKdfPub(child_secret_key, &child_cofactor, CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, &packed);
+
+  uint8_t p[sizeof(HKdf_packed_t)];
+  memcpy(p, &packed, sizeof(HKdf_packed_t));
+  return export_encrypted(p, sizeof(HKdf_packed_t), 'P', secret, secret_size, "0", 1);
 }

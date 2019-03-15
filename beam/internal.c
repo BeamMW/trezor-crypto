@@ -1,5 +1,14 @@
 #include <string.h>
 #include "internal.h"
+#include "../aes/aes.h"
+#include "../base64.h"
+
+const uint8_t const_raw_J[] = {0x26, 0xb9, 0x20, 0x01, 0x93, 0x5a, 0xe5, 0x00, 0x06, 0x7a, 0xdc, 0x00, 0xb6, 0xb9, 0x1c, 0x02, 0xb0, 0xbd, 0xa0, 0x00, 0xda, 0x9b, 0xbc, 0x03, 0xf1, 0x91, 0x26, 0x00, 0x32, 0x52, 0x5e, 0x01, 0x19, 0xbb, 0xca, 0x02, 0xe2, 0xa9, 0x3a, 0x00, 0xc7, 0xa7, 0xf1, 0x0d, 0xcb, 0x03, 0x75, 0x0e, 0x6d, 0x63, 0x94, 0x0e, 0x00, 0x7d, 0x48, 0x0e, 0xe4, 0xa4, 0xa2, 0x0c, 0xaa, 0x35, 0x41, 0x0d, 0x50, 0x08, 0x4f, 0x0e, 0xed, 0xfb, 0x49, 0x0d, 0xe5, 0xd0, 0x85, 0x0c, 0xd3, 0x86, 0xd3, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+secp256k1_gej *get_generator_J()
+{
+  return (secp256k1_gej *)const_raw_J;
+}
 
 void sha256_write_8(SHA256_CTX *hash, uint8_t b)
 {
@@ -60,7 +69,9 @@ void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej)
 
   do
   {
-    sha256_Final(oracle, pt.x);
+    SHA256_CTX new_oracle;
+    memcpy(&new_oracle, oracle, sizeof(SHA256_CTX));
+    sha256_Final(&new_oracle, pt.x);
     sha256_Update(oracle, pt.x, SHA256_DIGEST_LENGTH);
   } while (!point_import_nnz(out_gej, &pt));
 }
@@ -147,13 +158,14 @@ uint8_t nonce_generator_export_scalar(HMAC_SHA256_CTX *hash, const uint8_t *cont
   return number;
 }
 
-int create_pts(secp256k1_gej *pPts, secp256k1_gej *gpos, uint32_t nLevels, SHA256_CTX *oracle)
+int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLevels, SHA256_CTX *oracle)
 {
-  secp256k1_gej nums, npos, pt;
+  secp256k1_gej nums, npos, pt, gpos;
+  memcpy(&gpos, in_gpos, sizeof(secp256k1_gej));
 
   point_create_nnz(oracle, &nums);
 
-  secp256k1_gej_add_var(&nums, &nums, gpos, NULL);
+  secp256k1_gej_add_var(&nums, &nums, &gpos, NULL);
   npos = nums;
 
   for (uint32_t iLev = 1;; iLev++)
@@ -170,7 +182,7 @@ int create_pts(secp256k1_gej *pPts, secp256k1_gej *gpos, uint32_t nLevels, SHA25
       if (iPt == N_POINTS_PER_LEVEL)
         break;
 
-      secp256k1_gej_add_var(&pt, &pt, gpos, NULL);
+      secp256k1_gej_add_var(&pt, &pt, &gpos, NULL);
     }
 
     if (iLev == nLevels)
@@ -178,7 +190,7 @@ int create_pts(secp256k1_gej *pPts, secp256k1_gej *gpos, uint32_t nLevels, SHA25
 
     for (uint32_t i = 0; i < N_BITS_PER_LEVEL; i++)
     {
-      secp256k1_gej_double_var(gpos, gpos, NULL);
+      secp256k1_gej_double_var(&gpos, &gpos, NULL);
     }
 
     secp256k1_gej_double_var(&npos, &npos, NULL);
@@ -242,18 +254,19 @@ void generator_mul_scalar(secp256k1_gej *res, const secp256k1_gej *pPts, const s
 #endif
 }
 
-void generate_G(secp256k1_gej *generator_pts)
+void generate_points(secp256k1_gej *G_pts, secp256k1_gej *J_pts)
 {
   SHA256_CTX oracle;
   sha256_Init(&oracle);
   sha256_Update(&oracle, (const uint8_t *)"Let the generator generation begin!", 36);
 
   secp256k1_gej G_raw;
+  secp256k1_gej *J_raw = get_generator_J();
   secp256k1_ge G_const = secp256k1_ge_get_const_g();
   secp256k1_gej_set_ge(&G_raw, &G_const);
 
-  while (!create_pts(generator_pts, &G_raw, N_LEVELS, &oracle))
-    ;
+  while (!create_pts(G_pts, &G_raw, N_LEVELS, &oracle));
+  while (!create_pts(J_pts, J_raw, N_LEVELS, &oracle));
 }
 
 void signature_get_challenge(const secp256k1_gej *pt, const uint8_t *msg32, scalar_t *out_scalar)
@@ -363,4 +376,57 @@ void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *
       fast_aux_schedule(&m_Aux, sk, iBit, nMaxOdd, pTblCasual, iEntry);
     }
   }
+}
+
+void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_packed_t *packed)
+{
+  secp256k1_gej pkG, pkJ;
+  generator_mul_scalar(&pkG, G_pts, cofactor);
+  generator_mul_scalar(&pkJ, J_pts, cofactor);
+
+  memcpy(packed->secret, secret_key, 32);
+  export_gej_to_point(&pkG, &packed->pkG);
+  export_gej_to_point(&pkJ, &packed->pkJ);
+}
+
+void xcrypt(const uint8_t *secret_digest, uint8_t *data, size_t mac_value_size, size_t data_size)
+{
+  uint8_t hvIV[32];
+  SHA256_CTX x;
+  sha256_Init(&x);
+  sha256_Update(&x, secret_digest, 32);
+  sha256_Final(&x, hvIV);
+
+  HMAC_SHA256_CTX y;
+  hmac_sha256_Init(&y, secret_digest, 32);
+  hmac_sha256_Update(&y, data + mac_value_size, data_size);
+  uint8_t cbuf[16];
+  memcpy(cbuf, hvIV + 16, 16);
+  hmac_sha256_Final(&y, hvIV);
+
+  aes_encrypt_ctx ctxe;
+  aes_encrypt_key256(secret_digest, &ctxe);
+  aes_ctr_encrypt(data + mac_value_size, data + mac_value_size, data_size, cbuf, aes_ctr_cbuf_inc, &ctxe);
+
+  memcpy(data, hvIV + 32 - mac_value_size, mac_value_size);
+}
+
+char *export_encrypted(const void *p, size_t size, uint8_t code, const uint8_t *secret, size_t secret_size, const uint8_t *meta, size_t meta_size)
+{
+  const size_t mac_value_size = 8;
+  const size_t data_size = size + 1 + meta_size;
+  const size_t buff_size = mac_value_size + data_size;
+  uint8_t mac_value[buff_size];
+  memset(mac_value, 0, buff_size);
+
+  mac_value[mac_value_size] = code;
+  memcpy(mac_value + 1 + mac_value_size, p, size);
+  memcpy(mac_value + 1 + mac_value_size + size, meta, meta_size);
+
+  uint8_t hv_secret[32];
+  pbkdf2_hmac_sha512(secret, secret_size, NULL, 0, 65536, hv_secret, 32);
+
+  xcrypt(hv_secret, mac_value, mac_value_size, data_size);
+
+  return b64_encode(mac_value, buff_size);
 }
