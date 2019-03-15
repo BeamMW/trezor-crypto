@@ -40,7 +40,7 @@ ifdef SMALL
 CFLAGS += -DUSE_PRECOMPUTED_CP=0
 endif
 
-SRCS   = bignum.c ecdsa.c curves.c secp256k1.c nist256p1.c rand.c hmac.c bip32.c bip39.c pbkdf2.c base58.c base32.c
+SRCS   = bignum.c ecdsa.c curves.c secp256k1.c nist256p1.c rand.c hmac.c bip32.c bip39.c pbkdf2.c base58.c base32.c base64.c
 SRCS  += address.c
 SRCS  += script.c
 SRCS  += ripemd160.c
@@ -63,13 +63,14 @@ SRCS  += rc4.c
 SRCS  += nem.c
 SRCS  += segwit_addr.c cash_addr.c
 SRCS  += memzero.c
+SRCS  += beam/internal.c beam/functions.c beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c
 
 OBJS   = $(SRCS:.c=.o)
 
 TESTLIBS = $(shell pkg-config --libs check) -lpthread -lm
 TESTSSLLIBS = $(shell pkg-config --libs openssl)
 
-all: tools tests
+all: tools tests debug
 
 %.o: %.c %.h options.h
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -104,7 +105,15 @@ tools/mktable: tools/mktable.o $(OBJS)
 tools/bip39bruteforce: tools/bip39bruteforce.o $(OBJS)
 	$(CC) tools/bip39bruteforce.o $(OBJS) -o tools/bip39bruteforce
 
+debug: debug/debug_beam
+
+debug/debug_beam.o: debug/debug_beam.c
+
+debug/debug_beam: debug/debug_beam.o $(OBJS)
+	$(CC) -o debug/debug_beam debug/debug_beam.o $(OBJS) 
+
 clean:
 	rm -f *.o aes/*.o chacha20poly1305/*.o ed25519-donna/*.o
 	rm -f tests/test_check tests/test_speed tests/test_openssl tests/libtrezor-crypto.so tests/aestst
 	rm -f tools/*.o tools/xpubaddrgen tools/mktable tools/bip39bruteforce
+	rm -f debug/*.o debug/debug_beam

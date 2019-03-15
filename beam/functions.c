@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "mpconfigport.h"
+// #include "mpconfigport.h"
 #include "functions.h"
 
 context_t CONTEXT;
 
-void init_context()
+void init_context(void)
 {
   static uint8_t is_first_init = 1;
   if (is_first_init)
@@ -27,7 +27,9 @@ void init_context()
   CONTEXT.key.Decoy     = _FOURCC_FROM(dcoy);
   CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
 
-free_context();
+  random_reseed(time(NULL));
+
+  free_context();
 #ifndef BEAM_GENERATE_TABLES
   CONTEXT.generator.J_pts = get_generator_J();
   CONTEXT.generator.G_pts = malloc(sizeof(secp256k1_gej));
@@ -40,7 +42,7 @@ free_context();
 #endif
 }
 
-void free_context() {
+void free_context(void) {
   if (CONTEXT.generator.G_pts)
   {
     free(CONTEXT.generator.G_pts);
@@ -48,7 +50,7 @@ void free_context() {
   }
 }
 
-context_t* get_context()
+context_t* get_context(void)
 {
   return &CONTEXT;
 }
@@ -144,7 +146,6 @@ void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_ge
   nonce_generator_init(&secret, (const uint8_t *)"beam-Schnorr", 13);
   nonce_generator_write(&secret, bytes, 32);
 
-  // random_reseed(time(NULL));
   random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
   nonce_generator_write(&secret, bytes, 32);
 
@@ -200,5 +201,5 @@ char *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const
 
   uint8_t p[sizeof(HKdf_packed_t)];
   memcpy(p, &packed, sizeof(HKdf_packed_t));
-  return export_encrypted(p, sizeof(HKdf_packed_t), 'P', secret, secret_size, "0", 1);
+  return export_encrypted(p, sizeof(HKdf_packed_t), 'P', secret, secret_size, (const uint8_t*)"0", 1);
 }

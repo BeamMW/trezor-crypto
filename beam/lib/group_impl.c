@@ -66,7 +66,7 @@ const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
 const int CURVE_B = 7;
 #endif
 
-secp256k1_ge secp256k1_ge_get_const_g() {
+secp256k1_ge secp256k1_ge_get_const_g(void) {
     return secp256k1_ge_const_g;
 }
 

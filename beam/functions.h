@@ -4,11 +4,11 @@
 #include "internal.h"
 #include "definitions.h"
 
-void init_context();
+void init_context(void);
 
-void free_context();
+void free_context(void);
 
-context_t* get_context();
+context_t* get_context(void);
 
 void phrase_to_seed(const char *phrase, uint8_t *out_seed32);
 

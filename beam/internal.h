@@ -7,7 +7,7 @@
 #include "../rand.h"
 #include "definitions.h"
 
-secp256k1_gej *get_generator_J();
+secp256k1_gej *get_generator_J(void);
 
 void sha256_write_8(SHA256_CTX *hash, uint8_t b);
 
