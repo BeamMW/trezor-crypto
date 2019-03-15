@@ -1,7 +1,10 @@
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-// #include "mpconfigport.h"
 #include "functions.h"
 
 context_t CONTEXT;
@@ -26,8 +29,6 @@ void init_context(void)
   CONTEXT.key.Bbs       = _FOURCC_FROM(BbsM);
   CONTEXT.key.Decoy     = _FOURCC_FROM(dcoy);
   CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
-
-  random_reseed(time(NULL));
 
   free_context();
 #ifndef BEAM_GENERATE_TABLES

@@ -24,7 +24,7 @@
 
 int main(void)
 {
-  srand(time(NULL));
+  random_reseed(time(NULL));
   init_context();
 
   uint8_t seed[DIGEST_LENGTH];
