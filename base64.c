@@ -5,10 +5,10 @@
  * copyright (c) 2014 joseph werle
  */
 
+#include "base64.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "base64.h"
 
 #ifdef b64_USE_CUSTOM_MALLOC
 extern void* b64_malloc(size_t);

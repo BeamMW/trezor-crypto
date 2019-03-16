@@ -8,6 +8,10 @@
 #ifndef BASE64_H
 #define BASE64_H 1
 
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
+
 /**
  *  Memory allocation functions to use. You can define b64_malloc and
  * b64_realloc to custom functions if you want.
