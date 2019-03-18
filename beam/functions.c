@@ -195,7 +195,7 @@ char *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const
 {
   uint8_t child_secret_key[32];
   scalar_t child_cofactor;
-  get_child_kdf(master_key, master_cof, 1, child_secret_key, &child_cofactor);
+  get_child_kdf(master_key, master_cof, 0, child_secret_key, &child_cofactor);
 
   HKdf_packed_t packed;
   generate_HKdfPub(child_secret_key, &child_cofactor, CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, &packed);
