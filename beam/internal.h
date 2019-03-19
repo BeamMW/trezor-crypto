@@ -9,6 +9,8 @@
 
 secp256k1_gej *get_generator_J(void);
 
+secp256k1_gej *get_generator_H(void);
+
 void sha256_write_8(SHA256_CTX *hash, uint8_t b);
 
 void sha256_write_64(SHA256_CTX *hash, uint64_t v);
@@ -39,7 +41,7 @@ int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLeve
 
 void generator_mul_scalar(secp256k1_gej *res, const secp256k1_gej *pPts, const scalar_t *sk);
 
-void generate_points(secp256k1_gej *G_pts, secp256k1_gej *J_pts);
+void generate_points(secp256k1_gej *G_pts, secp256k1_gej *J_pts, secp256k1_gej *H_pts);
 
 void signature_get_challenge(const secp256k1_gej *pt, const uint8_t *msg32, scalar_t *out_scalar);
 

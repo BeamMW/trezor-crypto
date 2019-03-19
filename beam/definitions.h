@@ -46,6 +46,7 @@ typedef struct
 {
   secp256k1_gej *G_pts;
   secp256k1_gej *J_pts;
+  secp256k1_gej *H_pts;
 } generators_t;
 
 typedef struct
