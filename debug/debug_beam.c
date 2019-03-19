@@ -2,6 +2,7 @@
 #include <malloc.h>
 #include <time.h>
 #include "../beam/functions.h"
+#include "base64.h"
 
 #define DIGEST_LENGTH 32
 
@@ -74,9 +75,13 @@ int main(void)
   msg[0]++;
   VERIFY_TEST(signature_is_valid(msg, &nonce, &k, &pk, get_context()->generator.G_pts)); // failed
 
-  char* owner_key = get_owner_key(secret_key, &cofactor, (uint8_t*)"qwerty", 7);
+  uint8_t* owner_key = get_owner_key(secret_key, &cofactor, (uint8_t*)"qwerty", 7);
   printf("owner_key = %s\n\n", owner_key);
+  char* owner_key_encoded = b64_encode(owner_key, 108);
+  printf("owner_key encoded = %s\n\n", owner_key_encoded);
   free(owner_key);
+  free(owner_key_encoded);
+
 
   free_context();
   malloc_stats();

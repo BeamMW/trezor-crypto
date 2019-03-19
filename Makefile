@@ -41,7 +41,7 @@ ifdef SMALL
 CFLAGS += -DUSE_PRECOMPUTED_CP=0
 endif
 
-SRCS   = bignum.c ecdsa.c curves.c secp256k1.c nist256p1.c rand.c hmac.c bip32.c bip39.c pbkdf2.c base58.c base32.c base64.c
+SRCS   = bignum.c ecdsa.c curves.c secp256k1.c nist256p1.c rand.c hmac.c bip32.c bip39.c pbkdf2.c base58.c base32.c
 SRCS  += address.c
 SRCS  += script.c
 SRCS  += ripemd160.c
@@ -110,8 +110,10 @@ debug: debug/debug_beam
 
 debug/debug_beam.o: debug/debug_beam.c
 
-debug/debug_beam: debug/debug_beam.o $(OBJS)
-	$(CC) -o debug/debug_beam debug/debug_beam.o $(OBJS) 
+debug/base64.o: debug/base64.c
+
+debug/debug_beam: debug/base64.o debug/debug_beam.o $(OBJS)
+	$(CC) -o debug/debug_beam debug/base64.o debug/debug_beam.o $(OBJS) 
 
 clean:
 	rm -f *.o aes/*.o chacha20poly1305/*.o ed25519-donna/*.o

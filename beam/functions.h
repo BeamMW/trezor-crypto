@@ -26,6 +26,6 @@ int signature_is_valid(const uint8_t *msg32, const secp256k1_gej *nonce_pub, con
 
 void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, uint32_t index, uint8_t *out32_child_secret, scalar_t *out_child_cof);
 
-char *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size);
+uint8_t *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size);
 
 #endif //_FUNCTIONS_

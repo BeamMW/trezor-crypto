@@ -1,11 +1,7 @@
-#ifndef BEAM_DEBUG
-#include "mpconfigport.h"
-#endif
-
+#include "functions.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "functions.h"
 
 context_t CONTEXT;
 
@@ -191,7 +187,7 @@ void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, 
   seed_to_kdf(child_scalar_data, 32, out32_child_secret, out_child_cof);
 }
 
-char *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size)
+uint8_t* get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size)
 {
   uint8_t child_secret_key[32];
   scalar_t child_cofactor;

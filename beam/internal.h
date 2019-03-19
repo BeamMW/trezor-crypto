@@ -1,11 +1,11 @@
 #ifndef _INTERNAL_FUNCTIONS_
 #define _INTERNAL_FUNCTIONS_
 
+#include "definitions.h"
 #include "../pbkdf2.h"
 #include "../sha2.h"
 #include "../hmac.h"
 #include "../rand.h"
-#include "definitions.h"
 
 secp256k1_gej *get_generator_J(void);
 
@@ -53,6 +53,6 @@ void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const
 
 void xcrypt(const uint8_t *secret_digest, uint8_t *data, size_t mac_value_size, size_t data_size);
 
-char *export_encrypted(const void *p, size_t size, uint8_t code, const uint8_t *secret, size_t secret_size, const uint8_t *meta, size_t meta_size);
+uint8_t *export_encrypted(const void *p, size_t size, uint8_t code, const uint8_t *secret, size_t secret_size, const uint8_t *meta, size_t meta_size);
 
 #endif //_INTERNAL_FUNCTIONS_
