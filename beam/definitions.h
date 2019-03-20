@@ -70,4 +70,10 @@ typedef struct
 } HKdf_packed_t;
 #pragma pack(pop)
 
+secp256k1_gej *get_generator_G(void);
+
+secp256k1_gej *get_generator_J(void);
+
+secp256k1_gej *get_generator_H(void);
+
 #endif //_TYPES_

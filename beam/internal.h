@@ -7,10 +7,6 @@
 #include "../hmac.h"
 #include "../rand.h"
 
-secp256k1_gej *get_generator_J(void);
-
-secp256k1_gej *get_generator_H(void);
-
 void sha256_write_8(SHA256_CTX *hash, uint8_t b);
 
 void sha256_write_64(SHA256_CTX *hash, uint64_t v);

@@ -75,12 +75,12 @@ int main(void)
   msg[0]++;
   VERIFY_TEST(signature_is_valid(msg, &nonce, &k, &pk, get_context()->generator.G_pts)); // failed
 
-  uint8_t* owner_key = get_owner_key(secret_key, &cofactor, (uint8_t*)"qwerty", 7);
-  DEBUG_PRINT("owner_key: ", owner_key, 108);
-  char* owner_key_encoded = b64_encode(owner_key, 108);
-  printf("owner_key encoded: %s\n\n", owner_key_encoded);
-  free(owner_key);
-  free(owner_key_encoded);
+  // uint8_t* owner_key = get_owner_key(secret_key, &cofactor, (uint8_t*)"qwerty", 7);
+  // DEBUG_PRINT("owner_key: ", owner_key, 108);
+  // char* owner_key_encoded = b64_encode(owner_key, 108);
+  // printf("owner_key encoded: %s\n\n", owner_key_encoded);
+  // free(owner_key);
+  // free(owner_key_encoded);
 
   free_context();
   malloc_stats();

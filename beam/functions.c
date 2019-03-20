@@ -4,6 +4,7 @@
 #include <time.h>
 
 context_t CONTEXT;
+#define BEAM_GENERATE_TABLES
 
 void init_context(void)
 {
@@ -36,10 +37,11 @@ void init_context(void)
   secp256k1_ge G_const = secp256k1_ge_get_const_g();
   secp256k1_gej_set_ge(CONTEXT.generator.G_pts, &G_const);
 #else
-  CONTEXT.generator.G_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  CONTEXT.generator.J_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  CONTEXT.generator.H_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  generate_points(CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, CONTEXT.generator.H_pts);
+  // CONTEXT.generator.G_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  // CONTEXT.generator.J_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  // CONTEXT.generator.H_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  // generate_points(CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, CONTEXT.generator.H_pts);
+  CONTEXT.generator.G_pts = get_generator_G();
 #endif
 }
 
@@ -50,18 +52,18 @@ void free_context(void) {
 #else
   if (CONTEXT.generator.J_pts)
   {
-    free(CONTEXT.generator.J_pts);
+    // free(CONTEXT.generator.J_pts);
     CONTEXT.generator.J_pts = NULL;
   }
   if (CONTEXT.generator.H_pts)
   {
-    free(CONTEXT.generator.H_pts);
+    // free(CONTEXT.generator.H_pts);
     CONTEXT.generator.H_pts = NULL;
   }
 #endif
   if (CONTEXT.generator.G_pts)
   {
-    free(CONTEXT.generator.G_pts);
+    // free(CONTEXT.generator.G_pts);
     CONTEXT.generator.G_pts = NULL;
   }
 }

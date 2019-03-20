@@ -34,6 +34,7 @@ CFLAGS += -DUSE_MONERO=1
 CFLAGS += -DUSE_NEM=1
 CFLAGS += -DUSE_CARDANO=1
 CFLAGS += -DBEAM_DEBUG=1
+# CFLAGS += -DBEAM_GENERATE_TABLES
 CFLAGS += $(shell pkg-config --cflags openssl)
 
 # disable certain optimizations and features when small footprint is required
@@ -64,7 +65,7 @@ SRCS  += rc4.c
 SRCS  += nem.c
 SRCS  += segwit_addr.c cash_addr.c
 SRCS  += memzero.c
-SRCS  += beam/internal.c beam/functions.c beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c
+SRCS  += beam/definitions.c beam/internal.c beam/functions.c beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c
 
 OBJS   = $(SRCS:.c=.o)
 
