@@ -252,13 +252,11 @@ void generate_points(secp256k1_gej *G_pts, secp256k1_gej *J_pts, secp256k1_gej *
   sha256_Init(&oracle);
   sha256_Update(&oracle, (const uint8_t *)"Let the generator generation begin!", 36);
 
-  secp256k1_gej G_raw;
+  secp256k1_gej *G_raw = get_generator_G();
   secp256k1_gej *J_raw = get_generator_J();
   secp256k1_gej *H_raw = get_generator_H();
-  secp256k1_ge G_const = secp256k1_ge_get_const_g();
-  secp256k1_gej_set_ge(&G_raw, &G_const);
 
-  while (!create_pts(G_pts, &G_raw, N_LEVELS, &oracle));
+  while (!create_pts(G_pts, G_raw, N_LEVELS, &oracle));
   while (!create_pts(J_pts, J_raw, N_LEVELS, &oracle));
   while (!create_pts(H_pts, H_raw, N_LEVELS, &oracle));
 }

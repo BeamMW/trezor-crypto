@@ -10,5 +10,6 @@ tests/test_openssl
 tests/test_speed
 tests/test_check
 tests/libtrezor-crypto.so
+debug/*
 *.os
 *.pyc

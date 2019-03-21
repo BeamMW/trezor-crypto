@@ -4,7 +4,6 @@
 #include <time.h>
 
 context_t CONTEXT;
-#define BEAM_GENERATE_TABLES
 
 void init_context(void)
 {
@@ -30,42 +29,46 @@ void init_context(void)
   CONTEXT.key.Treasury  = _FOURCC_FROM(Tres);
 
   free_context();
-#ifndef BEAM_GENERATE_TABLES
+#ifndef BEAM_USE_TABLES
+  CONTEXT.generator.G_pts = get_generator_G();
   CONTEXT.generator.J_pts = get_generator_J();
   CONTEXT.generator.H_pts = get_generator_H();
-  CONTEXT.generator.G_pts = malloc(sizeof(secp256k1_gej));
-  secp256k1_ge G_const = secp256k1_ge_get_const_g();
-  secp256k1_gej_set_ge(CONTEXT.generator.G_pts, &G_const);
 #else
-  // CONTEXT.generator.G_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  // CONTEXT.generator.J_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  // CONTEXT.generator.H_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
-  // generate_points(CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, CONTEXT.generator.H_pts);
-  CONTEXT.generator.G_pts = get_generator_G();
+#ifndef BEAM_GENERATE_TABLES 
+  CONTEXT.generator.G_pts = get_generator_lut_G();
+  CONTEXT.generator.J_pts = get_generator_lut_J();
+  CONTEXT.generator.H_pts = get_generator_lut_H();
+#else
+  CONTEXT.generator.G_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  CONTEXT.generator.J_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  CONTEXT.generator.H_pts = malloc((N_LEVELS * N_POINTS_PER_LEVEL) * sizeof(secp256k1_gej));
+  generate_points(CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, CONTEXT.generator.H_pts);
+#endif
 #endif
 }
 
 void free_context(void) {
-#ifndef BEAM_GENERATE_TABLES
+#if !defined(BEAM_USE_TABLES) || !defined(BEAM_GENERATE_TABLES)
+  CONTEXT.generator.G_pts = NULL;
   CONTEXT.generator.J_pts = NULL;
   CONTEXT.generator.H_pts = NULL;
 #else
+  if (CONTEXT.generator.G_pts)
+  {
+    free(CONTEXT.generator.G_pts);
+    CONTEXT.generator.G_pts = NULL;
+  }
   if (CONTEXT.generator.J_pts)
   {
-    // free(CONTEXT.generator.J_pts);
+    free(CONTEXT.generator.J_pts);
     CONTEXT.generator.J_pts = NULL;
   }
   if (CONTEXT.generator.H_pts)
   {
-    // free(CONTEXT.generator.H_pts);
+    free(CONTEXT.generator.H_pts);
     CONTEXT.generator.H_pts = NULL;
   }
 #endif
-  if (CONTEXT.generator.G_pts)
-  {
-    // free(CONTEXT.generator.G_pts);
-    CONTEXT.generator.G_pts = NULL;
-  }
 }
 
 context_t* get_context(void)

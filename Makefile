@@ -34,7 +34,8 @@ CFLAGS += -DUSE_MONERO=1
 CFLAGS += -DUSE_NEM=1
 CFLAGS += -DUSE_CARDANO=1
 CFLAGS += -DBEAM_DEBUG=1
-# CFLAGS += -DBEAM_GENERATE_TABLES
+CFLAGS += -DBEAM_USE_TABLES=1
+# CFLAGS += -DBEAM_GENERATE_TABLES=1
 CFLAGS += $(shell pkg-config --cflags openssl)
 
 # disable certain optimizations and features when small footprint is required
@@ -65,7 +66,7 @@ SRCS  += rc4.c
 SRCS  += nem.c
 SRCS  += segwit_addr.c cash_addr.c
 SRCS  += memzero.c
-SRCS  += beam/definitions.c beam/internal.c beam/functions.c beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c
+SRCS  += beam/definitions.c beam/definitions_lut.c beam/internal.c beam/functions.c beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c
 
 OBJS   = $(SRCS:.c=.o)
 
@@ -120,4 +121,4 @@ clean:
 	rm -f *.o aes/*.o chacha20poly1305/*.o ed25519-donna/*.o
 	rm -f tests/test_check tests/test_speed tests/test_openssl tests/libtrezor-crypto.so tests/aestst
 	rm -f tools/*.o tools/xpubaddrgen tools/mktable tools/bip39bruteforce
-	rm -f debug/*.o debug/debug_beam
+	rm -f beam/*.o beam/lib/*.o debug/*.o debug/debug_beam
