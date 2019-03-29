@@ -20,9 +20,9 @@ void derive_key(const uint8_t *parrent, uint8_t parrent_size, const uint8_t *has
 
 void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32);
 
-void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, secp256k1_gej *out_nonce_pub, scalar_t *out_k);
+void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, ecc_signature_t* signature);
 
-int signature_is_valid(const uint8_t *msg32, const secp256k1_gej *nonce_pub, const scalar_t *k, const secp256k1_gej *pk, const secp256k1_gej *generator_pts);
+int signature_is_valid(const uint8_t *msg32, const ecc_signature_t* signature, const secp256k1_gej *pk, const secp256k1_gej *generator_pts);
 
 void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, uint32_t index, uint8_t *out32_child_secret, scalar_t *out_child_cof);
 

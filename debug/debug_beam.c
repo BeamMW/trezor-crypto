@@ -30,7 +30,7 @@ int main(void)
 
   uint8_t seed[DIGEST_LENGTH];
   phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
-  // phrase_to_seed("tomato provide age upon voice fetch nest night parent pilot evil furnace", seed);
+  //phrase_to_seed("tomato provide age upon voice fetch nest night parent pilot evil furnace", seed);
   DEBUG_PRINT("sha256 of pbkdf2 of phrase: ", seed, DIGEST_LENGTH);
 
   uint8_t secret_key[DIGEST_LENGTH];
@@ -59,21 +59,20 @@ int main(void)
   random_buffer(msg, 64);
   DEBUG_PRINT("generated message: ", msg, 64);
 
-  secp256k1_gej nonce;
   point_t nonce_point;
-  scalar_t k;
   uint8_t k_data[DIGEST_LENGTH];
-  signature_sign(msg, &key, get_context()->generator.G_pts, &nonce, &k);
-  scalar_get_b32(k_data, &k);
-  export_gej_to_point(&nonce, &nonce_point);
+  ecc_signature_t signature;
+  signature_sign(msg, &key, get_context()->generator.G_pts, &signature);
+  scalar_get_b32(k_data, &signature.k);
+  export_gej_to_point(&signature.nonce_pub, &nonce_point);
   DEBUG_PRINT("signature_sign k: ", k_data, DIGEST_LENGTH);
   DEBUG_PRINT("signature_sign nonce_point.x: ", nonce_point.x, DIGEST_LENGTH);
 
   secp256k1_gej pk;
   generator_mul_scalar(&pk, get_context()->generator.G_pts, &key);
-  VERIFY_TEST(signature_is_valid(msg, &nonce, &k, &pk, get_context()->generator.G_pts)); // passed
+  VERIFY_TEST(signature_is_valid(msg, &signature, &pk, get_context()->generator.G_pts)); // passed
   msg[0]++;
-  VERIFY_TEST(signature_is_valid(msg, &nonce, &k, &pk, get_context()->generator.G_pts)); // failed
+  VERIFY_TEST(signature_is_valid(msg, &signature, &pk, get_context()->generator.G_pts)); // failed
 
   uint8_t* owner_key = get_owner_key(secret_key, &cofactor, (uint8_t*)"qwerty", 7);
   DEBUG_PRINT("owner_key: ", owner_key, 108);

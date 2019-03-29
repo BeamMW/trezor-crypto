@@ -156,7 +156,7 @@ void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32)
   memcpy(out32, p.x, 32);
 }
 
-void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, secp256k1_gej *out_nonce_pub, scalar_t *out_k)
+void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, ecc_signature_t* signature)
 {
   HMAC_SHA256_CTX secret;
   uint8_t bytes[32];
@@ -172,23 +172,23 @@ void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_ge
 
   scalar_t multisig_nonce;
   nonce_generator_export_scalar(&secret, NULL, 0, 1, okm, &multisig_nonce);
-  generator_mul_scalar(out_nonce_pub, generator_pts, &multisig_nonce);
+  generator_mul_scalar(&signature->nonce_pub, generator_pts, &multisig_nonce);
 
-  signature_sign_partial(&multisig_nonce, out_nonce_pub, msg32, sk, out_k);
+  signature_sign_partial(&multisig_nonce, &signature->nonce_pub, msg32, sk, &signature->k);
 }
 
-int signature_is_valid(const uint8_t *msg32, const secp256k1_gej *nonce_pub, const scalar_t *k, const secp256k1_gej *pk, const secp256k1_gej *generator_pts)
+int signature_is_valid(const uint8_t *msg32, const ecc_signature_t* signature, const secp256k1_gej *pk, const secp256k1_gej *generator_pts)
 {
   scalar_t e;
-  signature_get_challenge(nonce_pub, msg32, &e);
+  signature_get_challenge(&signature->nonce_pub, msg32, &e);
 
   secp256k1_gej pt;
-  generator_mul_scalar(&pt, generator_pts, k);
+  generator_mul_scalar(&pt, generator_pts, &signature->k);
 
   secp256k1_gej mul_pt;
   gej_mul_scalar(pk, &e, &mul_pt);
   secp256k1_gej_add_var(&pt, &pt, &mul_pt, NULL);
-  secp256k1_gej_add_var(&pt, &pt, nonce_pub, NULL);
+  secp256k1_gej_add_var(&pt, &pt, &signature->nonce_pub, NULL);
 
   return secp256k1_gej_is_infinity(&pt) != 0;
 }

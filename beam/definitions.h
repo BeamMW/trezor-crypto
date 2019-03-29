@@ -70,6 +70,12 @@ typedef struct
 } HKdf_packed_t;
 #pragma pack(pop)
 
+typedef struct
+{
+  secp256k1_gej nonce_pub;
+  scalar_t k;
+} ecc_signature_t;
+
 secp256k1_gej *get_generator_lut_G(void);
 
 secp256k1_gej *get_generator_lut_J(void);
