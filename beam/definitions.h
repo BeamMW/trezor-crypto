@@ -7,6 +7,7 @@
 
 #include "lib/group.h"
 #include "lib/scalar32.h"
+#include "../bignum.h"
 
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
@@ -75,6 +76,116 @@ typedef struct
   secp256k1_gej nonce_pub;
   scalar_t k;
 } ecc_signature_t;
+
+#pragma pack(push, 1)
+  typedef struct
+  {
+    uint64_t idx;
+    uint64_t type;
+    uint32_t sub_idx;
+  } _rangeproof_public_packed_key_id_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+  typedef struct
+  {
+    _rangeproof_public_packed_key_id_t kid;
+    bignum256 checksum;
+  } rangeproof_public_recovery_t;
+#pragma pack(pop)
+
+typedef struct
+{
+  ecc_signature_t signature;
+  uint64_t value;
+
+  rangeproof_public_recovery_t recovery;
+} rangeproof_public_t;
+
+typedef struct
+{
+  // Bulletproof scheme
+
+  struct Part1 {
+    point_t a;
+    point_t s;
+  } part1;
+
+  // <- y,z
+
+  struct Part2 {
+    point_t t1;
+    point_t t2;
+  } part2;
+
+  // <- x
+
+  struct Part3 {
+    scalar_t tauX;
+  } part3;
+
+  scalar_t mu;
+  scalar_t tDot;
+
+#define _RANGEPROOF_CONFIDENTIAL_NCYCLES 6
+  struct InnerProduct {
+    point_t pair_LR[_RANGEPROOF_CONFIDENTIAL_NCYCLES][2];  // pairs of L,R values, per reduction iteration
+    scalar_t condensed[2];        // remaining 1-dimension vectors
+  } p_tag; // contains commitment P - m_Mu*G
+} rangeproof_confidential_t;
+
+typedef struct
+{
+  point_t commitment;
+  uint64_t maturity_height; // used in macroblocks only
+} tx_element_t;
+
+typedef struct
+{
+  ecc_signature_t signature;    // For the whole body, including nested kernels
+  uint64_t fee;                 // can be 0 (for instance for coinbase transactions)
+  uint64_t min_height;
+  uint64_t max_height;
+  int64_t asset_emission;       // in case it's non-zero - the kernel commitment is the AssetID
+
+  bignum256 hash_lock_preimage;
+  tx_element_t tx_element;
+} _tx_kernel_t;
+
+typedef struct
+{
+  _tx_kernel_t kernel;
+
+  uint32_t num_nested_kernels;
+  _tx_kernel_t* nested_kernels;
+} tx_kernel_t;
+
+typedef struct
+{
+  tx_element_t tx_element;
+  uint64_t _id; // used internally. Not serialized/transferred
+} tx_input_t;
+
+typedef struct
+{
+  tx_element_t tx_element;
+  uint32_t is_coinbase; // 0 - regular output. 1 - coinbase
+  uint64_t incubation_height; // # of blocks before it's mature
+  bignum256 asset_id; // type of ECC:Hash::Value
+
+  // one of the following *must* be specified
+
+  rangeproof_confidential_t* confidential_proof;
+  rangeproof_public_t* public_proof;
+} tx_output_t;
+
+typedef struct
+{
+  scalar_t offset;
+  tx_input_t* inputs;
+  tx_output_t* outputs;
+  tx_kernel_t* kernels;
+} transaction_t;
 
 secp256k1_gej *get_generator_lut_G(void);
 
