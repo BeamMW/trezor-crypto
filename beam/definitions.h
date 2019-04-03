@@ -7,7 +7,6 @@
 
 #include "lib/group.h"
 #include "lib/scalar32.h"
-#include "../bignum.h"
 
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
@@ -90,7 +89,7 @@ typedef struct
   typedef struct
   {
     _rangeproof_public_packed_key_id_t kid;
-    bignum256 checksum;
+    uint8_t checksum[32];
   } rangeproof_public_recovery_t;
 #pragma pack(pop)
 
@@ -148,7 +147,7 @@ typedef struct
   uint64_t max_height;
   int64_t asset_emission;       // in case it's non-zero - the kernel commitment is the AssetID
 
-  bignum256 hash_lock_preimage;
+  uint8_t hash_lock_preimage[32];
   tx_element_t tx_element;
 } _tx_kernel_t;
 
@@ -171,7 +170,7 @@ typedef struct
   tx_element_t tx_element;
   uint32_t is_coinbase; // 0 - regular output. 1 - coinbase
   uint64_t incubation_height; // # of blocks before it's mature
-  bignum256 asset_id; // type of ECC:Hash::Value
+  uint8_t asset_id[32]; // type of ECC:Hash::Value
 
   // one of the following *must* be specified
 
