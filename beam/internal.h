@@ -47,7 +47,7 @@ void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRem
 
 void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res);
 
-void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_packed_t *packed);
+void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_pub_packed_t *packed);
 
 void xcrypt(const uint8_t *secret_digest, uint8_t *data, size_t mac_value_size, size_t data_size);
 

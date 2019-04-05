@@ -217,10 +217,10 @@ uint8_t* get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, co
   scalar_t child_cofactor;
   get_child_kdf(master_key, master_cof, 0, child_secret_key, &child_cofactor);
 
-  HKdf_packed_t packed;
+  HKdf_pub_packed_t packed;
   generate_HKdfPub(child_secret_key, &child_cofactor, CONTEXT.generator.G_pts, CONTEXT.generator.J_pts, &packed);
 
-  uint8_t p[sizeof(HKdf_packed_t)];
-  memcpy(p, &packed, sizeof(HKdf_packed_t));
-  return export_encrypted(p, sizeof(HKdf_packed_t), 'P', secret, secret_size, (const uint8_t*)"0", 1);
+  uint8_t p[sizeof(HKdf_pub_packed_t)];
+  memcpy(p, &packed, sizeof(HKdf_pub_packed_t));
+  return export_encrypted(p, sizeof(HKdf_pub_packed_t), 'P', secret, secret_size, (const uint8_t*)"0", 1);
 }

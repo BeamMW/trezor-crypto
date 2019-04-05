@@ -370,7 +370,7 @@ void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *
   }
 }
 
-void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_packed_t *packed)
+void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_pub_packed_t *packed)
 {
   secp256k1_gej pkG, pkJ;
   generator_mul_scalar(&pkG, G_pts, cofactor);

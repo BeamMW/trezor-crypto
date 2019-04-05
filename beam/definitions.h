@@ -9,6 +9,7 @@
 #include "lib/scalar32.h"
 #include "lib/vec.h"
 
+#define DIGEST_LENGTH 32
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
 #define N_BITS_PER_LEVEL 4
@@ -24,7 +25,7 @@
 
 typedef struct
 {
-  uint8_t x[32];
+  uint8_t x[DIGEST_LENGTH];
   uint8_t y;
 } point_t;
 
@@ -62,13 +63,20 @@ typedef struct
   unsigned int odd;
 } fast_aux_t;
 
+typedef struct
+{
+  secp256k1_gej cofactor;
+  // according to rfc5869
+  uint8_t generator_secret[DIGEST_LENGTH];
+} HKdf_t;
+
 #pragma pack(push, 1)
 typedef struct
 {
-  uint8_t secret[32];
+  uint8_t secret[DIGEST_LENGTH];
   point_t pkG;
   point_t pkJ;
-} HKdf_packed_t;
+} HKdf_pub_packed_t;
 #pragma pack(pop)
 
 typedef struct
@@ -77,20 +85,33 @@ typedef struct
   scalar_t k;
 } ecc_signature_t;
 
+typedef struct
+{
+  uint64_t idx;
+  uint32_t type;
+  uint32_t sub_idx;
+} key_id_t;
+
+typedef struct
+{
+  key_id_t id;
+  uint64_t value;
+} key_id_value_t;
+
 #pragma pack(push, 1)
-  typedef struct
-  {
-    uint64_t idx;
-    uint64_t type;
-    uint32_t sub_idx;
-  } _rangeproof_public_packed_key_id_t;
+typedef struct
+{
+  uint64_t idx;
+  uint32_t type;
+  uint32_t sub_idx;
+} packed_key_id_t;
 #pragma pack(pop)
 
 #pragma pack(push, 1)
   typedef struct
   {
-    _rangeproof_public_packed_key_id_t kid;
-    uint8_t checksum[32];
+    packed_key_id_t kid;
+    uint8_t checksum[DIGEST_LENGTH];
   } rangeproof_public_recovery_t;
 #pragma pack(pop)
 
@@ -148,7 +169,7 @@ typedef struct
   uint64_t max_height;
   int64_t asset_emission;       // in case it's non-zero - the kernel commitment is the AssetID
 
-  uint8_t hash_lock_preimage[32];
+  uint8_t hash_lock_preimage[DIGEST_LENGTH];
   tx_element_t tx_element;
 } _tx_kernel_t;
 // Just an inner type to store nested TxKernels
@@ -168,26 +189,30 @@ typedef struct
   tx_element_t tx_element;
   uint64_t _id; // used internally. Not serialized/transferred
 } tx_input_t;
+// Define a type for vector of TxInputs
+typedef vec_t(tx_kernel_t*) tx_inputs_vec_t;
 
 typedef struct
 {
   tx_element_t tx_element;
   uint32_t is_coinbase; // 0 - regular output. 1 - coinbase
   uint64_t incubation_height; // # of blocks before it's mature
-  uint8_t asset_id[32]; // type of ECC:Hash::Value
+  uint8_t asset_id[DIGEST_LENGTH]; // type of ECC:Hash::Value
 
   // one of the following *must* be specified
 
   rangeproof_confidential_t* confidential_proof;
   rangeproof_public_t* public_proof;
 } tx_output_t;
+// Define a type for vector of TxOutputs
+typedef vec_t(tx_kernel_t*) tx_outputs_vec_t;
 
 typedef struct
 {
   scalar_t offset;
-  tx_input_t* inputs;
-  tx_output_t* outputs;
-  tx_kernel_t* kernels;
+  tx_inputs_vec_t inputs;
+  tx_outputs_vec_t outputs;
+  tx_kernels_vec_t kernels;
 } transaction_t;
 
 secp256k1_gej *get_generator_lut_G(void);
