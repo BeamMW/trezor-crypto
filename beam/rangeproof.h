@@ -74,4 +74,30 @@ void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, cons
   }
 }
 
+
+int tag_is_custom(const secp256k1_gej* h_gen)
+{
+  // secp256k1_gej_is_infinity == 0 means thath h_gen is zero
+  return (h_gen != NULL) && (secp256k1_gej_is_infinity(h_gen) == 0);
+}
+
+void tag_add_value(const secp256k1_gej *h_gen, uint64_t value, secp256k1_gej *out)
+{
+  scalar_t value_scalar;
+  scalar_set_u64(&value_scalar, value);
+  secp256k1_gej mul_result;
+
+  if (tag_is_custom(h_gen))
+    gej_mul_scalar(h_gen, &value_scalar, &mul_result);
+  else
+    generator_mul_scalar(&mul_result, get_context()->generator.H_pts, &value_scalar);
+
+  secp256k1_gej_add_var(out, out, &mul_result, NULL);
+}
+
+void asset_tag_commit(const secp256k1_gej *h_gen, const scalar_t *sk, uint64_t value, secp256k1_gej *out)
+{
+  generator_mul_scalar(out, get_context()->generator.G_pts, sk);
+  tag_add_value(h_gen, value, out);
+}
 #endif //_RANGEPROOF_H_

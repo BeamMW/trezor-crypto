@@ -24,6 +24,21 @@
   }                                          \
   printf("\n");
 
+void printAsBytes(const char *name, const void *mem, size_t len)
+{
+  uint8_t tmp[len];
+  memcpy(tmp, mem, len);
+  printf("const uint8_t %s[] = { ", name);
+  for (size_t i = 0; i < len; i++)
+  {
+    if (i < len - 1)
+      printf("0x%02x, ", tmp[i]);
+    else
+      printf("0x%02x };", tmp[i]);
+  }
+  printf("\n\n");
+}
+
 int main(void)
 {
   random_reseed(time(NULL));
@@ -107,6 +122,10 @@ int main(void)
   rangeproof_public_create(&rp, &sk, &crp, &oracle);
   DEBUG_PRINT("checksum: expected: fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d, real:", rp.recovery.checksum, 32);
 
+  printAsBytes("sk", &sk, sizeof(sk));
+  secp256k1_gej comm;
+  asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.amount_value, &comm);
+  printAsBytes("comm", &comm, sizeof(comm));
   free_context();
   malloc_stats();
 }
