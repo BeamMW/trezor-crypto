@@ -3,6 +3,7 @@
 #include <time.h>
 #include "../beam/functions.h"
 #include "base64.h"
+#include "../beam/rangeproof.h"
 
 #define DIGEST_LENGTH 32
 
@@ -80,6 +81,30 @@ int main(void)
   printf("owner_key encoded: %s\n\n", owner_key_encoded);
   free(owner_key);
   free(owner_key_encoded);
+
+  const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
+  const uint8_t sk_bytes[] = {0x96, 0x6b, 0xdc, 0xea, 0x97, 0x7e, 0x01, 0x3e, 0x67, 0xfc, 0xe1, 0x41, 0xa1, 0x3e, 0xe9, 0x70, 0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab};
+
+  secp256k1_gej asset_tag_h_gen = switch_commitment(asset_id);
+  printf("AssetTag ");
+  printf("%x", asset_tag_h_gen.x.n[0]);
+  printf("\n");
+  
+  rangeproof_creator_params_t crp;
+  memset(crp.seed, 1, 32);
+  crp.kidv.amount_value = 345000;
+  crp.kidv.id.idx = 1;
+  crp.kidv.id.type = 11;
+  crp.kidv.id.sub_idx = 111;
+
+  scalar_t sk;
+  scalar_set_b32(&sk, sk_bytes, NULL);
+  rangeproof_public_t rp;
+  SHA256_CTX oracle;
+
+  memset(rp.recovery.checksum, 0, 32);
+  rangeproof_public_create(&rp, &sk, &crp, &oracle);
+  DEBUG_PRINT("checksum: ", rp.recovery.checksum, 32);
 
   free_context();
   malloc_stats();

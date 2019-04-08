@@ -1,9 +1,9 @@
 #ifndef _TYPES_
 #define _TYPES_
 
-#ifndef BEAM_DEBUG
-#include "mpconfigport.h"
-#endif
+// #ifndef BEAM_DEBUG
+// #include "mpconfigport.h"
+// #endif
 
 #include "lib/group.h"
 #include "lib/scalar32.h"
@@ -76,19 +76,39 @@ typedef struct
   scalar_t k;
 } ecc_signature_t;
 
+typedef struct
+{
+  uint64_t idx;
+  uint32_t type;
+  uint32_t sub_idx;
+} key_id_t;
+
+#define _RANGEPROOF_AMOUNT_MINIMUM_VALUE 1
+typedef struct
+{
+  key_id_t id;
+  uint64_t amount_value;
+} key_idv_t;
+
 #pragma pack(push, 1)
-  typedef struct
+  typedef struct // use arrays for fields ???
   {
-    uint64_t idx;
-    uint64_t type;
-    uint32_t sub_idx;
-  } _rangeproof_public_packed_key_id_t;
+    uint8_t idx[8];
+    uint8_t type[4];
+    uint8_t sub_idx[4];
+  } packed_key_id_t;
 #pragma pack(pop)
+
+typedef struct
+{
+  uint8_t seed[32];
+  key_idv_t kidv;
+} rangeproof_creator_params_t;
 
 #pragma pack(push, 1)
   typedef struct
   {
-    _rangeproof_public_packed_key_id_t kid;
+    packed_key_id_t kid;
     uint8_t checksum[32];
   } rangeproof_public_recovery_t;
 #pragma pack(pop)
