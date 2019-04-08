@@ -7,6 +7,7 @@
 
 #include "lib/group.h"
 #include "lib/scalar32.h"
+#include "lib/vec.h"
 
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
@@ -170,14 +171,17 @@ typedef struct
   uint8_t hash_lock_preimage[32];
   tx_element_t tx_element;
 } _tx_kernel_t;
+// Just an inner type to store nested TxKernels
+typedef vec_t(_tx_kernel_t*) _nested_kernels_vec_t;
 
 typedef struct
 {
   _tx_kernel_t kernel;
 
-  uint32_t num_nested_kernels;
-  _tx_kernel_t* nested_kernels;
+  _nested_kernels_vec_t nested_kernels;
 } tx_kernel_t;
+// Define a type for vector of TxKernels
+typedef vec_t(tx_kernel_t*) tx_kernels_vec_t;
 
 typedef struct
 {
