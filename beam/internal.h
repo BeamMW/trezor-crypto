@@ -7,6 +7,26 @@
 #include "../hmac.h"
 #include "../rand.h"
 
+inline int memis0(const void *p, size_t n)
+{
+  for (size_t i = 0; i < n; i++)
+    if (((const uint8_t *)p)[i])
+      return 0;
+  return 1;
+}
+
+inline void memxor(uint8_t *pDst, const uint8_t *pSrc, size_t n)
+{
+  for (size_t i = 0; i < n; i++)
+    pDst[i] ^= pSrc[i];
+}
+
+inline void assing_aligned(uint8_t *dest, uint8_t *src, size_t bytes)
+{
+  for (size_t i = bytes; i--; src++)
+    dest[i] = *src;
+}
+
 void sha256_write_8(SHA256_CTX *hash, uint8_t b);
 
 void sha256_write_64(SHA256_CTX *hash, uint64_t v);

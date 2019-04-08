@@ -1,9 +1,9 @@
 #ifndef _TYPES_
 #define _TYPES_
 
-// #ifndef BEAM_DEBUG
-// #include "mpconfigport.h"
-// #endif
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
 
 #include "lib/group.h"
 #include "lib/scalar32.h"
@@ -21,6 +21,7 @@
 #define _FOURCC_FROM(name) _FOURCC_CONST(_ARRAY_ELEMENT_SAFE(#name, 0), _ARRAY_ELEMENT_SAFE(#name, 1), _ARRAY_ELEMENT_SAFE(#name, 2), _ARRAY_ELEMENT_SAFE(#name, 3))
 
 #define static_assert(condition)((void)sizeof(char[1 - 2 * !(condition)]))
+#define UNUSED(x) (void)(x)
 
 typedef struct
 {
@@ -92,7 +93,7 @@ typedef struct
 } key_idv_t;
 
 #pragma pack(push, 1)
-  typedef struct // use arrays for fields ???
+  typedef struct
   {
     uint8_t idx[8];
     uint8_t type[4];

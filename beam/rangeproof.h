@@ -1,20 +1,9 @@
+#ifndef _RANGEPROOF_H_
+#define _RANGEPROOF_H_
+
 #include "definitions.h"
 #include "internal.h"
 #include "sha2.h"
-
-int memis0(const void *p, size_t n)
-{
-  for (size_t i = 0; i < n; i++)
-    if (((const uint8_t *)p)[i])
-      return 0;
-  return 1;
-}
-
-void memxor(uint8_t *pDst, const uint8_t *pSrc, size_t n)
-{
-  for (size_t i = 0; i < n; i++)
-    pDst[i] ^= pSrc[i];
-}
 
 secp256k1_gej switch_commitment(const uint8_t *asset_id)
 {
@@ -46,13 +35,7 @@ secp256k1_gej switch_commitment(const uint8_t *asset_id)
   }
   return h_gen;
 }
-#define DEBUG_PRINT(msg, arr, len)           \
-  printf("Line=%u, Msg=%s ", __LINE__, msg); \
-  for (size_t i = 0; i < len; i++)           \
-  {                                          \
-    printf("%02x", arr[i]);                  \
-  }                                          \
-  printf("\n");
+
 void rangeproof_public_xcrypt_kid(packed_key_id_t *kid, const rangeproof_creator_params_t *cp, uint8_t *checksum)
 {
   HMAC_SHA256_CTX nonce;
@@ -64,19 +47,9 @@ void rangeproof_public_xcrypt_kid(packed_key_id_t *kid, const rangeproof_creator
   uint8_t prk[SHA256_DIGEST_LENGTH];
   memset(prk, 0, sizeof(prk));
   number = nonce_generator_export_output_key(prk, &nonce, NULL, 0, number, okm);
-  DEBUG_PRINT("okm", okm, 32);
-  DEBUG_PRINT("kid", ((uint8_t *)kid), sizeof(packed_key_id_t));
   memxor((uint8_t *)kid, okm, sizeof(packed_key_id_t));
-  DEBUG_PRINT("okm-xor", ((uint8_t *)kid), sizeof(packed_key_id_t));
-
   nonce_generator_export_output_key(prk, &nonce, NULL, 0, number, okm);
   memcpy(checksum, okm, 32);
-}
-
-void assing_aligned(uint8_t *dest, uint8_t *src, size_t bytes)
-{
-  for (size_t i = bytes; i--; src++)
-    dest[i] = *src;
 }
 
 void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, const rangeproof_creator_params_t *cp, SHA256_CTX *oracle)
@@ -92,9 +65,13 @@ void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, cons
     rangeproof_public_xcrypt_kid(&(out->recovery.kid), cp, out->recovery.checksum);
 
     // TODO: Implement the rest
+    UNUSED(sk);
+    UNUSED(oracle);
     // Hash::Value hv;
     // get_Msg(hv, oracle);
 
     // m_Signature.Sign(hv, sk);
   }
 }
+
+#endif //_RANGEPROOF_H_
