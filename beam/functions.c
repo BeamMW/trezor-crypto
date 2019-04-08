@@ -101,11 +101,13 @@ void phrase_to_seed(const char *phrase, uint8_t *out_seed32)
 void seed_to_kdf(const uint8_t *seed, size_t n, uint8_t *out_gen32, scalar_t *out_cof)
 {
   uint8_t okm[SHA256_DIGEST_LENGTH];
-  
+  uint8_t prk[SHA256_DIGEST_LENGTH];
+  memset(prk, 0, sizeof(prk));
+
   HMAC_SHA256_CTX secret;
   nonce_generator_init(&secret, (const uint8_t *)"beam-HKdf", 10);
   nonce_generator_write(&secret, seed, n);
-  nonce_generator_export_output_key(&secret, (const uint8_t *)"gen", 4, 1, okm);
+  nonce_generator_export_output_key(prk, &secret, (const uint8_t *)"gen", 4, 1, okm);
   memcpy(out_gen32, okm, SHA256_DIGEST_LENGTH);
 
   HMAC_SHA256_CTX co_factor;
