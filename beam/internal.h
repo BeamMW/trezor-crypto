@@ -41,18 +41,6 @@ void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej);
 
 int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point);
 
-void get_first_output_key_material(uint8_t *prk, HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t *out32);
-
-void get_rest_output_key_material(uint8_t *prk, HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t number, const uint8_t *okm32, uint8_t *out32);
-
-void nonce_generator_init(HMAC_SHA256_CTX *hash, const uint8_t *salt, uint8_t salt_size);
-
-void nonce_generator_write(HMAC_SHA256_CTX *hash, const uint8_t *seed, uint8_t seed_size);
-
-uint8_t nonce_generator_export_output_key(uint8_t *prk, HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32);
-
-uint8_t nonce_generator_export_scalar(HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32, scalar_t *out_scalar);
-
 int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLevels, SHA256_CTX *oracle);
 
 void generator_mul_scalar(secp256k1_gej *res, const secp256k1_gej *pPts, const scalar_t *sk);

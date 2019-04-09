@@ -38,18 +38,13 @@ secp256k1_gej switch_commitment(const uint8_t *asset_id)
 
 void rangeproof_public_xcrypt_kid(packed_key_id_t *kid, const rangeproof_creator_params_t *cp, uint8_t *checksum)
 {
-  HMAC_SHA256_CTX nonce;
+  nonce_generator_t nonce;
   nonce_generator_init(&nonce, (const uint8_t *)"beam-psig", 10);
   nonce_generator_write(&nonce, cp->seed, 32);
-
-  uint8_t okm[32];
-  uint8_t number = 1;
-  uint8_t prk[SHA256_DIGEST_LENGTH];
-  memset(prk, 0, sizeof(prk));
-  number = nonce_generator_export_output_key(prk, &nonce, NULL, 0, number, okm);
-  memxor((uint8_t *)kid, okm, sizeof(packed_key_id_t));
-  nonce_generator_export_output_key(prk, &nonce, NULL, 0, number, okm);
-  memcpy(checksum, okm, 32);
+  nonce_generator_export_output_key(&nonce, NULL, 0, NULL);
+  memxor((uint8_t *)kid, nonce.okm, sizeof(packed_key_id_t));
+  nonce_generator_export_output_key(&nonce, NULL, 0, NULL);
+  memcpy(checksum, nonce.okm, 32);
 }
 
 void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, const rangeproof_creator_params_t *cp, SHA256_CTX *oracle)

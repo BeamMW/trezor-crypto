@@ -92,66 +92,6 @@ int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point)
   return 1;
 }
 
-void get_first_output_key_material(uint8_t *prk, HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t *out32)
-{
-  const uint8_t number = 1;
-
-  hmac_sha256_Final(hash, prk);
-  hmac_sha256_Init(hash, prk, 32);
-
-  hmac_sha256_Update(hash, context, context_size);
-  hmac_sha256_Update(hash, &number, 1);
-  hmac_sha256_Final(hash, out32);
-}
-
-void get_rest_output_key_material(uint8_t *prk, HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t number, const uint8_t *okm32, uint8_t *out32)
-{
-  hmac_sha256_Init(hash, prk, 32);
-
-  hmac_sha256_Update(hash, okm32, SHA256_DIGEST_LENGTH);
-  hmac_sha256_Update(hash, context, context_size);
-  hmac_sha256_Update(hash, &number, 1);
-  hmac_sha256_Final(hash, out32);
-}
-
-void nonce_generator_init(HMAC_SHA256_CTX *hash, const uint8_t *salt, uint8_t salt_size)
-{
-  hmac_sha256_Init(hash, (uint8_t *)salt, salt_size);
-}
-
-void nonce_generator_write(HMAC_SHA256_CTX *hash, const uint8_t *seed, uint8_t seed_size)
-{
-  hmac_sha256_Update(hash, seed, seed_size);
-}
-
-uint8_t nonce_generator_export_output_key(uint8_t *prk, HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32)
-{
-  if (1 == number)
-  {
-    get_first_output_key_material(prk, hash, context, context_size, okm32);
-  }
-  else
-  {
-    get_rest_output_key_material(prk, hash, context, context_size, number, okm32, okm32);
-  }
-
-  return ++number;
-}
-
-uint8_t nonce_generator_export_scalar(HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32, scalar_t *out_scalar)
-{
-  uint8_t prk[SHA256_DIGEST_LENGTH];
-  memset(prk, 0, sizeof(prk));
-
-  scalar_clear(out_scalar);
-  do
-  {
-    number = nonce_generator_export_output_key(prk, hash, context, context_size, number, okm32);
-  } while (!scalar_import_nnz(out_scalar, okm32));
-
-  return number;
-}
-
 int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLevels, SHA256_CTX *oracle)
 {
   secp256k1_gej nums, npos, pt, gpos;

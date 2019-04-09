@@ -100,20 +100,15 @@ void phrase_to_seed(const char *phrase, uint8_t *out_seed32)
 
 void seed_to_kdf(const uint8_t *seed, size_t n, uint8_t *out_gen32, scalar_t *out_cof)
 {
-  uint8_t okm[SHA256_DIGEST_LENGTH];
-  uint8_t prk[SHA256_DIGEST_LENGTH];
-  memset(prk, 0, sizeof(prk));
-
-  HMAC_SHA256_CTX secret;
+  nonce_generator_t secret;
   nonce_generator_init(&secret, (const uint8_t *)"beam-HKdf", 10);
   nonce_generator_write(&secret, seed, n);
-  nonce_generator_export_output_key(prk, &secret, (const uint8_t *)"gen", 4, 1, okm);
-  memcpy(out_gen32, okm, SHA256_DIGEST_LENGTH);
+  nonce_generator_export_output_key(&secret, (const uint8_t *)"gen", 4, out_gen32);
 
-  HMAC_SHA256_CTX co_factor;
+  nonce_generator_t co_factor;
   nonce_generator_init(&co_factor, (const uint8_t *)"beam-HKdf", 10);
   nonce_generator_write(&co_factor, seed, n);
-  nonce_generator_export_scalar(&co_factor, (const uint8_t *)"coF", 4, 1, okm, out_cof);
+  nonce_generator_export_scalar(&co_factor, (const uint8_t *)"coF", 4, out_cof);
 }
 
 void generate_hash_id(uint64_t idx, uint32_t type, uint32_t sub_idx, uint8_t *out32)
@@ -129,15 +124,12 @@ void generate_hash_id(uint64_t idx, uint32_t type, uint32_t sub_idx, uint8_t *ou
 
 void derive_key(const uint8_t *parrent, uint8_t parrent_size, const uint8_t *hash_id, uint8_t id_size, const scalar_t *cof_sk, scalar_t *out_sk)
 {
-  HMAC_SHA256_CTX key;
-  uint8_t okm[SHA256_DIGEST_LENGTH];
-
+  scalar_t a_sk;
+  nonce_generator_t key;
   nonce_generator_init(&key, (const uint8_t *)"beam-Key", 9);
   nonce_generator_write(&key, parrent, parrent_size);
   nonce_generator_write(&key, hash_id, id_size);
-
-  scalar_t a_sk;
-  nonce_generator_export_scalar(&key, NULL, 0, 1, okm, &a_sk);
+  nonce_generator_export_scalar(&key, NULL, 0, &a_sk);
 
   scalar_clear(out_sk);
   scalar_mul(out_sk, &a_sk, cof_sk);
@@ -160,9 +152,8 @@ void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32)
 
 void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_gej *generator_pts, ecc_signature_t* signature)
 {
-  HMAC_SHA256_CTX secret;
+  nonce_generator_t secret;
   uint8_t bytes[32];
-  uint8_t okm[32];
 
   scalar_get_b32(bytes, sk);
 
@@ -173,7 +164,7 @@ void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_ge
   nonce_generator_write(&secret, bytes, 32);
 
   scalar_t multisig_nonce;
-  nonce_generator_export_scalar(&secret, NULL, 0, 1, okm, &multisig_nonce);
+  nonce_generator_export_scalar(&secret, NULL, 0, &multisig_nonce);
   generator_mul_scalar(&signature->nonce_pub, generator_pts, &multisig_nonce);
 
   signature_sign_partial(&multisig_nonce, &signature->nonce_pub, msg32, sk, &signature->k);

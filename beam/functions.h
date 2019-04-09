@@ -2,6 +2,7 @@
 #define _FUNCTIONS_
 
 #include "internal.h"
+#include "nonce_generator.h"
 #include "definitions.h"
 
 void init_context(void);
