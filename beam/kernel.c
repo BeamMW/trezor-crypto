@@ -45,7 +45,7 @@ void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_
 {
     SHA256_CTX x;
     sha256_Init(&x);
-    //TODO: which fields of secp256k1_gej are expected to be added to oracle?
+
     point_t commitment_point;
     export_gej_to_point(commitment, &commitment_point);
 
@@ -130,29 +130,11 @@ void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, transacti
     scalar_add(peer_scalar, peer_scalar, k);
 }
 
-int kernel_cmp(const tx_kernel_t* lhs, const tx_kernel_t* rhs)
-{
-    //{
-    //    int n = Cast::Down<TxElement>(*this).cmp(v);
-    //    if (n)
-    //        return n;
-    //}
-
-    // Compare signature
-    int signature_cmp_res = signature_cmp(&lhs->kernel.signature, &rhs->kernel.signature);
-    if (signature_cmp_res != 0)
-    {
-        return signature_cmp_res;
-    }
-
-    CMP_MEMBER(lhs->kernel.fee, rhs->kernel.fee)
-    CMP_MEMBER(lhs->kernel.min_height, rhs->kernel.min_height)
-    CMP_MEMBER(lhs->kernel.max_height, rhs->kernel.max_height)
-    CMP_MEMBER(lhs->kernel.asset_emission, rhs->kernel.asset_emission)
-}
-
 // AmountBig::Type is 128 bits = 16 bytes
-int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel, const uint8_t* hash_lock_preimage, uint8_t* hash_value, uint8_t* fee, secp256k1_gej* excess)
+int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
+                    const uint8_t* hash_lock_preimage,
+                    uint8_t* hash_value, uint8_t* fee,
+                    secp256k1_gej* excess)
 {
     if (parent_kernel)
     {
@@ -199,13 +181,35 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
         sha256_Update(&hp, should_break, 1);
 
         //TODO: to implement
+        //const TxKernel& v = *(*it);
+        //if (p0Krn && (*p0Krn > v))
+        //    return false;
+        //p0Krn = &v;
+
+        //if (!v.Traverse(hv, pFee, pExcess ? &ptExcNested : NULL, this, NULL))
+        //    return false;
+
+        //hp << hv;
     }
-    //sha256_Final(&x, lock_image);
+    //TODO: Does this means that we extract from context?
+    // hp >> hv
+    sha256_Final(&hp, hash_value);
+
+    if (excess)
+    {
+        //TODO
+    }
+    if (fee)
+    {
+        //TODO
+    }
+
+    return true;
 }
 
 void kernel_get_hash(const tx_kernel_t* kernel, const uint8_t* hash_lock_preimage, uint8_t* out)
 {
-
+    kernel_traverse(kernel, NULL, hash_lock_preimage, out, NULL, NULL);
 }
 
 // 1st pass. Public excesses and Nonces are summed.
