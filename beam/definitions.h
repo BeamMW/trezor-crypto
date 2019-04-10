@@ -11,7 +11,8 @@
 
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
-#define N_BITS_PER_LEVEL 4
+// #define N_BITS_PER_LEVEL 4
+#define N_BITS_PER_LEVEL 2
 #define N_POINTS_PER_LEVEL (1 << N_BITS_PER_LEVEL) //16
 #define N_LEVELS (N_BITS / N_BITS_PER_LEVEL)
 
@@ -56,12 +57,6 @@ typedef struct
   key_types_t key;
   generators_t generator;
 } context_t;
-
-typedef struct
-{
-  unsigned int next_item;
-  unsigned int odd;
-} fast_aux_t;
 
 #pragma pack(push, 1)
 typedef struct

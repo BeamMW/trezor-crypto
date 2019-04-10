@@ -1,5 +1,6 @@
 #include <string.h>
 #include "internal.h"
+#include "multi_mac.h"
 #include "../aes/aes.h"
 
 void sha256_write_8(SHA256_CTX *hash, uint8_t b)
@@ -228,88 +229,15 @@ void signature_sign_partial(const scalar_t *multisig_nonce, const secp256k1_gej 
   scalar_negate(out_k, out_k);
 }
 
-void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry)
-{
-  const uint32_t *p = k->d;
-  const uint32_t nWordBits = sizeof(*p) << 3;
-
-  // assert(1 & nMaxOdd); // must be odd
-  unsigned int nVal = 0, nBitTrg = 0;
-
-  while (iBitsRemaining--)
-  {
-    nVal <<= 1;
-    if (nVal > nMaxOdd)
-      break;
-
-    uint32_t n = p[iBitsRemaining / nWordBits] >> (iBitsRemaining & (nWordBits - 1));
-
-    if (1 & n)
-    {
-      nVal |= 1;
-      aux->odd = nVal;
-      nBitTrg = iBitsRemaining;
-    }
-  }
-
-  if (nVal > 0)
-  {
-    aux->next_item = pTbl[nBitTrg];
-    pTbl[nBitTrg] = iThisEntry;
-  }
-}
-
 void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res)
 {
-  static const int nMaxOdd = (1 << 5) - 1;      // 31
-  static const int nCount = (nMaxOdd >> 1) + 2; // we need a single even: x2
-  static const uint32_t nBytes = 32;
-  static const uint32_t nBits = nBytes << 3;
+  multi_mac_casual_t mc;
+  multi_mac_casual_init(&mc, pt, sk);
 
-  secp256k1_gej m_pPt[nCount];
-  m_pPt[1] = *pt;
-
-  fast_aux_t m_Aux = {0};
-  unsigned int m_nPrepared = 1;
-
-  secp256k1_gej_set_infinity(res);
-
-  unsigned int pTblCasual[nBits];
-  unsigned int pTblPrepared[nBits];
-
-  memset(pTblCasual, 0, sizeof(pTblCasual));
-  memset(pTblPrepared, 0, sizeof(pTblPrepared));
-
-  fast_aux_schedule(&m_Aux, sk, nBits, nMaxOdd, pTblCasual, 1);
-
-  for (unsigned int iBit = nBits; iBit--;)
-  {
-    if (!secp256k1_gej_is_infinity(res))
-      secp256k1_gej_double_var(res, res, NULL);
-
-    while (pTblCasual[iBit])
-    {
-      unsigned int iEntry = pTblCasual[iBit];
-      pTblCasual[iBit] = m_Aux.next_item;
-
-      // assert(1 & m_Aux.odd);
-      unsigned int nElem = (m_Aux.odd >> 1) + 1;
-      // assert(nElem < nCount);
-
-      for (; m_nPrepared < nElem; m_nPrepared++)
-      {
-        if (1 == m_nPrepared)
-        {
-          secp256k1_gej_double_var(&m_pPt[0], &m_pPt[1], NULL);
-        }
-        secp256k1_gej_add_var(&m_pPt[m_nPrepared + 1], &m_pPt[m_nPrepared], &m_pPt[0], NULL);
-      }
-
-      secp256k1_gej_add_var(res, res, &m_pPt[nElem], NULL);
-
-      fast_aux_schedule(&m_Aux, sk, iBit, nMaxOdd, pTblCasual, iEntry);
-    }
-  }
+  multi_mac_t mm;
+  mm.casual = &mc;
+  mm.n_casual = 1;
+  multi_mac_calculate(&mm, res);
 }
 
 void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_packed_t *packed)

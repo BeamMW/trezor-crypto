@@ -51,8 +51,6 @@ void signature_get_challenge(const secp256k1_gej *pt, const uint8_t *msg32, scal
 
 void signature_sign_partial(const scalar_t *multisig_nonce, const secp256k1_gej *multisig_nonce_pub, const uint8_t *msg, const scalar_t *sk, scalar_t *out_k);
 
-void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry);
-
 void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res);
 
 void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_packed_t *packed);
