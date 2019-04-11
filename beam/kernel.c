@@ -5,15 +5,6 @@
 #include "../rand.h"
 #include "misc.h"
 
-void kernel_push_back_moved(tx_kernels_vec_t* kernels, tx_kernel_t* kernel_to_push)
-{
-    tx_kernel_t* new_kernels = realloc(sizeof(tx_kernel_t) * (num_kernels + 1));
-    if (!
-    memmove(new_kernels, kernels, sizeof(tx_kernel_t) * num_kernels);
-    memmove(new_kernels + sizeof(tx_kernel_t) * num_kernels, kernel_to_push, sizeof(tx_kernel_t));
-    kernels = new_kernels;
-}
-
 //void free_tx_kernels_vec(tx_kernels_vec_t* kernels)
 //{
 //    int i = 0;
@@ -47,15 +38,15 @@ void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_
     sha256_Init(&x);
 
     point_t commitment_point;
-    export_gej_to_point(commitment, &commitment_point);
+    export_gej_to_point((secp256k1_gej*)commitment, &commitment_point);
 
     point_t sk0_j_point;
-    export_gej_to_point(sk0_j, &sk0_j_point);
+    export_gej_to_point((secp256k1_gej*)sk0_j, &sk0_j_point);
 
     sha256_Update(&x, commitment_point.x, DIGEST_LENGTH);
-    sha256_Update(&x, commitment_point.y, sizeof(commitment_point.y));
+    sha256_write_8(&x, commitment_point.y);
     sha256_Update(&x, sk0_j_point.x, DIGEST_LENGTH);
-    sha256_Update(&x, sk0_j_point.y, sizeof(commitment_point.y));
+    sha256_write_8(&x, sk0_j_point.y);
 
     uint8_t scalar_res[32];
     sha256_Final(&x, scalar_res);
@@ -65,21 +56,21 @@ void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_
 void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_id_value_t* kidv, int has_commitment, const secp256k1_gej* h_gen)
 {
     uint8_t hash_id[DIGEST_LENGTH];
-    generate_hash_id(kidv.id.idx, kidv.id.type, kidv.id.sub_idx, hash_id);
+    generate_hash_id(kidv->id.idx, kidv->id.type, kidv->id.sub_idx, hash_id);
 
-    derive_key(kdf.generator_secret, DIGEST_LENGTH, hash_id, DIGEST_LENGTH, kdf.cofactor, &sk);
+    derive_key(kdf->generator_secret, DIGEST_LENGTH, hash_id, DIGEST_LENGTH, &kdf->cofactor, sk);
 
     // Multiply key by generator G
-    generator_mul_scalar(commitment, get_context()->generator.G_pts, &sk);
-    ecc_tag_add_value(h_gen, kidv.value, commitment);
+    generator_mul_scalar(commitment, get_context()->generator.G_pts, sk);
+    ecc_tag_add_value(h_gen, kidv->value, commitment);
 
     // Multiply key by generator J
     secp256k1_gej key_j_mul_result;
-    generator_mul_scalar(&key_j_mul_result, get_context()->generator.J_pts, &sk);
+    generator_mul_scalar(&key_j_mul_result, get_context()->generator.J_pts, sk);
 
     scalar_t sk1;
     switch_commitment_get_sk1(commitment, &key_j_mul_result, &sk1);
-    scalar_add(sk, sk, sk1);
+    scalar_add(sk, sk, &sk1);
 
     if (has_commitment)
     {
@@ -91,12 +82,14 @@ void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* k
 
 void peer_finalize_excess(scalar_t* peer_scalar, secp256k1_gej* kG, scalar_t* k_offset)
 {
-    scalar_add(kOffset, kOffset, peer_scalar);
+    scalar_add(k_offset, k_offset, peer_scalar);
 
-    random_buffer(peer_scalar, DIGEST_LENGTH);
-    scalar_add(kOffset, kOffset, peer_scalar);
+    uint8_t random_scalar_data[DIGEST_LENGTH];
+    random_buffer(random_scalar_data, DIGEST_LENGTH);
+    scalar_set_b32(peer_scalar, random_scalar_data, NULL);
+    scalar_add(k_offset, k_offset, peer_scalar);
 
-    scalar_negate(&peer_scalar, &peer_scalar);
+    scalar_negate(peer_scalar, peer_scalar);
 
     secp256k1_gej peer_scalar_mul_g;
     generator_mul_scalar(&peer_scalar_mul_g, get_context()->generator.G_pts, peer_scalar);
@@ -110,24 +103,24 @@ void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, transacti
     key_id_value_t kidv;
     //TEST<Kirill A>: Test only
     //kidv.idx = 1;
-    random_buffer(&kidv.id.idx, sizeof(kidf.idx));
+    random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
     kidv.id.sub_idx = 0;
-    kidv.id.type = get_context().key.Regular;
+    kidv.id.type = get_context()->key.Regular;
     kidv.value = val;
 
     scalar_t k;
     secp256k1_gej h_gen;
     switch_commitment(asset_id, &h_gen);
     secp256k1_gej commitment_native;
-    point_import_nnz(&commitment_native, &input.tx_element.commitment);
+    point_import_nnz(&commitment_native, &input->tx_element.commitment);
     switch_commitment_create(&k, &commitment_native, kdf, &kidv, 1, &h_gen);
     // Write result back to TxInput
-    export_gej_to_point(&commitment_native, &input.tx_element.commitment);
+    export_gej_to_point(&commitment_native, &input->tx_element.commitment);
 
     // Push TxInput to vec of inputs
     vec_push(tx_inputs, input);
 
-    scalar_add(peer_scalar, peer_scalar, k);
+    scalar_add(peer_scalar, peer_scalar, &k);
 }
 
 // AmountBig::Type is 128 bits = 16 bytes
@@ -139,31 +132,32 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     if (parent_kernel)
     {
         // Nested kernel restrictions
-        if ((kernel.kernel.min_height > parent_kernel.kernel.min_height)
-            || (kernel.kernel.max_height < parent_kernel.kernel.max_height))
+        if ((kernel->kernel.min_height > parent_kernel->kernel.min_height)
+            || (kernel->kernel.max_height < parent_kernel->kernel.max_height))
         {
             // Parent Height range must be contained in ours
-            return false;
+            return 0;
         }
     }
 
     SHA256_CTX hp;
     sha256_Init(&hp);
-    sha256_Update(&hp, kernel.kernel.fee, sizeof(kernel.kernel.fee));
-    sha256_Update(&hp, kernel.kernel.min_height, sizeof(kernel.kernel.min_height));
-    sha256_Update(&hp, kernel.kernel.max_height, sizeof(kernel.kernel.max_height));
-    sha256_Update(&hp, kernel.kernel.tx_element.commitment.x, DIGEST_LENGHT);
-    sha256_Update(&hp, kernel.kernel.tx_element.commitment.y, 1);
-    sha256_Update(&hp, kernel.kernel.asset_emission, sizeof(kernel.kernel.asset_emission));
-    int is_empty_kernel_hash_lock_preimage = memis0(kernel.kernel.hash_lock_preimage);
-    sha256_Update(&hp, ! is_empty_kernel_hash_lock_preimage, 1);
+    sha256_write_64(&hp, kernel->kernel.fee);
+    sha256_write_64(&hp, kernel->kernel.min_height);
+    sha256_write_64(&hp, kernel->kernel.max_height);
+    sha256_Update(&hp, kernel->kernel.tx_element.commitment.x, DIGEST_LENGTH);
+    sha256_write_8(&hp, kernel->kernel.tx_element.commitment.y);
+    sha256_write_64(&hp, kernel->kernel.asset_emission);
+    const uint8_t is_empty_kernel_hash_lock_preimage = memis0(kernel->kernel.hash_lock_preimage);
+    const uint8_t is_non_empty_kernel_hash_lock_preimage = ! is_empty_kernel_hash_lock_preimage;
+    sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
 
     if (is_empty_kernel_hash_lock_preimage)
     {
         if (hash_lock_preimage)
         {
             SHA256_CTX hash_lock_ctx;
-            sha256_Update(&hash_lock_ctx, kernel.kernel.hash_lock_preimage, DIGEST_LENGTH);
+            sha256_Update(&hash_lock_ctx, kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
             sha256_Final(&hash_lock_ctx, hash_value);
         }
 
@@ -175,10 +169,10 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
         secp256k1_gej_set_infinity(&point_excess_nested);
 
     const tx_kernel_t* zero_kernel = NULL;
-    for (size_t i = 0; i < kernel.nested_kernels.len; ++i)
+    for (size_t i = 0; i < (size_t)kernel->nested_kernels.length; ++i)
     {
         const uint8_t should_break = 1;
-        sha256_Update(&hp, should_break, 1);
+        sha256_write_8(&hp, should_break);
 
         //TODO: to implement
         //const TxKernel& v = *(*it);
@@ -204,7 +198,7 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
         //TODO
     }
 
-    return true;
+    return 1;
 }
 
 void kernel_get_hash(const tx_kernel_t* kernel, const uint8_t* hash_lock_preimage, uint8_t* out)
@@ -216,40 +210,70 @@ void kernel_get_hash(const tx_kernel_t* kernel, const uint8_t* hash_lock_preimag
 void cosign_kernel_part_1(tx_kernel_t* kernel,
                           secp256k1_gej* kG, secp256k1_gej* xG,
                           scalar_t* peer_scalars, scalar_t* peer_nonces, size_t num_peers,
-                          scalar_t* transaction_offset, uint8_t kernel_hash_message,
+                          scalar_t* transaction_offset, uint8_t* kernel_hash_message,
                           const uint8_t* hash_lock_preimage)
 {
     for (size_t i = 0; i < num_peers; ++i)
     {
-        peer_finalize_excess(peer_scalars[i], kG, transaction_offset);
+        peer_finalize_excess(&peer_scalars[i], kG, transaction_offset);
 
         // Nonces are initialized as a random buffer
-        random_buffer(&peer_nonces[i], DIGEST_LENGTH);
+        uint8_t random_scalar_data[DIGEST_LENGTH];
+        random_buffer(random_scalar_data, DIGEST_LENGTH);
+        scalar_set_b32(&peer_nonces[i], random_scalar_data, NULL);
         secp256k1_gej nonce_mul_g;
-        generator_mul_scalar(&nonce_mul_g, get_context()->generator.G_pts, peer_nonces[i]);
+        generator_mul_scalar(&nonce_mul_g, get_context()->generator.G_pts, &peer_nonces[i]);
         secp256k1_gej_add_var(xG, xG, &nonce_mul_g, NULL);
     }
 
-    for (size_t i = 0; i < kernel.nested_kernels.len, ++i)
+    for (size_t i = 0; i < (size_t)kernel->nested_kernels.length; ++i)
     {
         secp256k1_gej nested_point;
-        point_import_nnz(&nested_point, &kernel.nested_kernels.tx_element.commitment);
+        point_import_nnz(&nested_point, &kernel->nested_kernels.data[i]->tx_element.commitment);
         //TODO: import
         //verify_test(ptNested.Import(krn.m_vNested[i]->m_Commitment));
         secp256k1_gej_add_var(kG, kG, &nested_point, NULL);
     }
 
-    export_gej_to_point(kG, &kernel.tx_element.commitment);
+    export_gej_to_point(kG, &kernel->kernel.tx_element.commitment);
 
     kernel_get_hash(kernel, hash_lock_preimage, kernel_hash_message);
 }
+
+// 2nd pass. Signing. Total excess is the signature public key.
+void cosign_kernel_part_2(tx_kernel_t* kernel,
+                          secp256k1_gej* xG,
+                          scalar_t* peer_scalars, scalar_t* peer_nonces, size_t num_peers,
+                          uint8_t* kernel_hash_message)
+{
+    scalar_t k_sig;
+    scalar_set_int(&k_sig, 0);
+
+    for (size_t i = 0; i < num_peers; ++i)
+    {
+        ecc_signature_t sig;
+        sig.nonce_pub = *xG;
+
+        scalar_t multisig_nonce = peer_nonces[i];
+
+        scalar_t k;
+        signature_sign_partial(&multisig_nonce, &sig.nonce_pub, kernel_hash_message, &peer_scalars[i], &k);
+        scalar_add(&k_sig, &k_sig, &k);
+        // Signed, prepare for next tx
+        scalar_set_int(&peer_scalars[i], 0);
+    }
+
+    kernel->kernel.signature.nonce_pub = *xG;
+    kernel->kernel.signature.k = k_sig;
+}
+
 
 void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
                       tx_kernels_vec_t* nested_kernels,
                       uint64_t fee, uint32_t should_emit_custom_tag)
 {
     tx_kernel_t* kernel = malloc(sizeof(tx_kernel_t));
-    kernel->fee = fee;
+    kernel->kernel.fee = fee;
     //TODO<Kirill A>: be careful to move data out of the vector
     memmove(kernel->nested_kernels.data, nested_kernels->data, nested_kernels->length * sizeof(tx_kernel_t));
 
@@ -281,14 +305,14 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
         //m_pPeers[0].AddOutput(m_Trans, valAsset, m_Kdf, &aid); // output UTXO to consume the created asset
 
         tx_kernel_t* kernel_emission = malloc(sizeof(tx_kernel_t));
-        kernel_emission.kernel.asset_emission = val_asset;
+        kernel_emission->kernel.asset_emission = val_asset;
         //TODO<Kirill A>: Why do we need these 2 following lines?!
-        memcpy(kernel_emission.kernel.tx_element.commitment.x, aid, 32);
-        kernel_emission.kernel.tx_element.commitment.y = 0;
+        memcpy(kernel_emission->kernel.tx_element.commitment.x, aid, 32);
+        kernel_emission->kernel.tx_element.commitment.y = 0;
 
         secp256k1_gej commitment_native;
         generator_mul_scalar(&commitment_native, get_context()->generator.G_pts, &sk_asset);
-        export_gej_to_point(&commitment_native, &kernel_emission.kernel.tx_element.commitment);
+        export_gej_to_point(&commitment_native, &kernel_emission->kernel.tx_element.commitment);
 
         vec_push(trg_kernels, kernel_emission);
         scalar_negate(&sk_asset, &sk_asset);
@@ -299,7 +323,7 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
     //CoSignKernel(*pKrn, hvLockImage);
 
     //Point::Native exc;
-    sec256k1_gej exc;
+    secp256k1_gej exc;
     // AmountBig::Type is 128 bits = 16 bytes
     //beam::AmountBig::Type fee2;
     uint8_t fee2[16];
@@ -307,7 +331,7 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
 
     //// finish HL: add hash preimage
     //pKrn->m_pHashLock->m_Preimage = hlPreimage;
-    memcpy(kernel->kernel.hash_lock_preimage, pre_image, 32);
+    memcpy(kernel->kernel.hash_lock_preimage, preimage, 32);
     //verify_test(pKrn->IsValid(fee2, exc));
 
     vec_push(trg_kernels, kernel);

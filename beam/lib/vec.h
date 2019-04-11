@@ -31,13 +31,13 @@
     vec_init(v) ) 
 
 // Should be used only when vec contains pointers as elements
-#define vec_deinit_inner_ptrs(v, PointerType)\
-    ( int i = 0; \
+#define vec_deinit_inner_ptrs(v, PointerType) \
+    ({ int i = 0; \
       PointerType** element_to_free = NULL; \
       vec_foreach_ptr(v, element_to_free, i) { \
           free(*element_to_free); \
       } \
-      vec_deinit(kernels); )
+      vec_deinit(kernels); })
 
 
 #define vec_push(v, val)\

@@ -5,15 +5,18 @@
 
 
 #define CMP_SIMPLE(a, b) \
-		if (a < b) \
-			return -1; \
-		if (a > b) \
-			return 1;
+    if (a < b) \
+        return -1; \
+    if (a > b) \
+        return 1;
 
 #define CMP_BY_FUN(a, b, cmp_fun) \
-        const int cmp_res = cmp_fun(a, b); \
-        if (cmp_res != 0) \
-            return cmp_res;
+{ \
+    const int cmp_res = cmp_fun(a, b); \
+    if (cmp_res != 0) \
+        return cmp_res; \
+}
+
 
 #define CMP_MEMBER(member, other_member) CMP_SIMPLE(member, other_member)
 

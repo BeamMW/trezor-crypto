@@ -45,11 +45,11 @@ int tx_element_cmp(const tx_element_t* lhs, const tx_element_t* rhs)
 int signature_cmp(const ecc_signature_t* lhs, const ecc_signature_t* rhs)
 {
     point_t lhs_nonce_pub_point;
-    export_gej_to_point(&lhs.nonce_pub.x, &lhs_nonce_pub_point);
+    export_gej_to_point((secp256k1_gej*)&lhs->nonce_pub, &lhs_nonce_pub_point);
     point_t rhs_nonce_pub_point;
-    export_gej_to_point(&rhs.nonce_pub.x, &rhs_nonce_pub_point);
+    export_gej_to_point((secp256k1_gej*)&rhs->nonce_pub, &rhs_nonce_pub_point);
 
-    CMP_SIMPLE(lhs_nonce_pub_point.y, rhs.nonce_pub_point.y)
+    CMP_SIMPLE(lhs_nonce_pub_point.y, rhs_nonce_pub_point.y)
 
     return memcmp(lhs_nonce_pub_point.x, rhs_nonce_pub_point.x, DIGEST_LENGTH);
 }
@@ -59,7 +59,7 @@ int kernel_cmp(const tx_kernel_t* lhs, const tx_kernel_t* rhs)
     // Compare tx_element
     CMP_BY_FUN(&lhs->kernel.tx_element, &rhs->kernel.tx_element, tx_element_cmp)
     // Compare signature
-    CMP_BY_FUN(&lhs->kernel.signature, &rhs->kernel.signature)
+    CMP_BY_FUN(&lhs->kernel.signature, &rhs->kernel.signature, signature_cmp)
 
     CMP_MEMBER(lhs->kernel.fee, rhs->kernel.fee)
     CMP_MEMBER(lhs->kernel.min_height, rhs->kernel.min_height)
@@ -83,6 +83,6 @@ int kernel_cmp(const tx_kernel_t* lhs, const tx_kernel_t* rhs)
     //if (v.m_vNested.end() != it1)
     //    return -1;
 
-    CMP_BY_FUN(lhs->kernel.hash_lock_preimage, rhs->kernel.hash_lock_preimage, bigint_cmp)
+    return bigint_cmp(lhs->kernel.hash_lock_preimage, DIGEST_LENGTH, rhs->kernel.hash_lock_preimage, DIGEST_LENGTH);
 }
 

@@ -65,7 +65,7 @@ typedef struct
 
 typedef struct
 {
-  secp256k1_gej cofactor;
+  scalar_t cofactor;
   // according to rfc5869
   uint8_t generator_secret[DIGEST_LENGTH];
 } HKdf_t;
@@ -190,7 +190,7 @@ typedef struct
   uint64_t _id; // used internally. Not serialized/transferred
 } tx_input_t;
 // Define a type for vector of TxInputs
-typedef vec_t(tx_kernel_t*) tx_inputs_vec_t;
+typedef vec_t(tx_input_t*) tx_inputs_vec_t;
 
 typedef struct
 {
@@ -205,7 +205,7 @@ typedef struct
   rangeproof_public_t* public_proof;
 } tx_output_t;
 // Define a type for vector of TxOutputs
-typedef vec_t(tx_kernel_t*) tx_outputs_vec_t;
+typedef vec_t(tx_output_t*) tx_outputs_vec_t;
 
 typedef struct
 {
