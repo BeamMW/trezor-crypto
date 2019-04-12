@@ -66,7 +66,9 @@ SRCS  += rc4.c
 SRCS  += nem.c
 SRCS  += segwit_addr.c cash_addr.c
 SRCS  += memzero.c
-SRCS  += beam/definitions.c beam/definitions_lut.c beam/internal.c beam/functions.c beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c beam/lib/vec.c beam/kernel.c beam/misc.c 
+SRCS  += beam/multi_mac.c beam/nonce_generator.c beam/definitions.c beam/definitions_lut.c beam/internal.c beam/functions.c 
+SRCS  += beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c beam/lib/vec.c
+SRCS  += beam/kernel.c beam/misc.c 
 
 OBJS   = $(SRCS:.c=.o)
 

@@ -7,6 +7,26 @@
 #include "../hmac.h"
 #include "../rand.h"
 
+inline int memis0(const void *p, size_t n)
+{
+  for (size_t i = 0; i < n; i++)
+    if (((const uint8_t *)p)[i])
+      return 0;
+  return 1;
+}
+
+inline void memxor(uint8_t *pDst, const uint8_t *pSrc, size_t n)
+{
+  for (size_t i = 0; i < n; i++)
+    pDst[i] ^= pSrc[i];
+}
+
+inline void assing_aligned(uint8_t *dest, uint8_t *src, size_t bytes)
+{
+  for (size_t i = bytes; i--; src++)
+    dest[i] = *src;
+}
+
 void sha256_write_8(SHA256_CTX *hash, uint8_t b);
 
 void sha256_write_64(SHA256_CTX *hash, uint64_t v);
@@ -21,18 +41,6 @@ void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej);
 
 int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point);
 
-void get_first_output_key_material(HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t *out32);
-
-void get_rest_output_key_material(HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t number, const uint8_t *okm32, uint8_t *out32);
-
-void nonce_generator_init(HMAC_SHA256_CTX *hash, const uint8_t *salt, uint8_t salt_size);
-
-void nonce_generator_write(HMAC_SHA256_CTX *hash, const uint8_t *seed, uint8_t seed_size);
-
-uint8_t nonce_generator_export_output_key(HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32);
-
-uint8_t nonce_generator_export_scalar(HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32, scalar_t *out_scalar);
-
 int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLevels, SHA256_CTX *oracle);
 
 void generator_mul_scalar(secp256k1_gej *res, const secp256k1_gej *pPts, const scalar_t *sk);
@@ -42,8 +50,6 @@ void generate_points(secp256k1_gej *G_pts, secp256k1_gej *J_pts, secp256k1_gej *
 void signature_get_challenge(const secp256k1_gej *pt, const uint8_t *msg32, scalar_t *out_scalar);
 
 void signature_sign_partial(const scalar_t *multisig_nonce, const secp256k1_gej *multisig_nonce_pub, const uint8_t *msg, const scalar_t *sk, scalar_t *out_k);
-
-void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry);
 
 void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res);
 

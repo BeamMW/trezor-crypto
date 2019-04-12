@@ -1,5 +1,6 @@
 #include <string.h>
 #include "internal.h"
+#include "multi_mac.h"
 #include "../aes/aes.h"
 
 void sha256_write_8(SHA256_CTX *hash, uint8_t b)
@@ -25,14 +26,16 @@ int scalar_import_nnz(scalar_t *scalar, const uint8_t *data32)
   return !(overflow || zero);
 }
 
-void scalar_create_nnz(SHA256_CTX *orcale, scalar_t *out_scalar)
+void scalar_create_nnz(SHA256_CTX *oracle, scalar_t *out_scalar)
 {
   uint8_t data[32];
   scalar_clear(out_scalar);
   do
   {
-    sha256_Final(orcale, data);
-    sha256_Update(orcale, data, sizeof(data) / sizeof(data[0]));
+    SHA256_CTX new_oracle;
+    memcpy(&new_oracle, oracle, sizeof(SHA256_CTX));
+    sha256_Final(&new_oracle, data);
+    sha256_Update(oracle, data, sizeof(data) / sizeof(data[0]));
   } while (!scalar_import_nnz(out_scalar, data));
 }
 
@@ -88,66 +91,6 @@ int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point)
   out_point->y = (secp256k1_fe_is_odd(&ge.y) != 0);
 
   return 1;
-}
-
-void get_first_output_key_material(HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t *out32)
-{
-  uint8_t prk[SHA256_DIGEST_LENGTH];
-  const uint8_t number = 1;
-
-  hmac_sha256_Final(hash, prk);
-  hmac_sha256_Init(hash, prk, sizeof(prk) / sizeof(prk[0]));
-
-  hmac_sha256_Update(hash, context, context_size);
-  hmac_sha256_Update(hash, &number, 1);
-  hmac_sha256_Final(hash, out32);
-}
-
-void get_rest_output_key_material(HMAC_SHA256_CTX *hash, const uint8_t *context, size_t context_size, uint8_t number, const uint8_t *okm32, uint8_t *out32)
-{
-  uint8_t prk[SHA256_DIGEST_LENGTH];
-  memset(prk, 0, sizeof(prk));
-  hmac_sha256_Init(hash, prk, sizeof(prk) / sizeof(prk[0]));
-
-  hmac_sha256_Update(hash, okm32, SHA256_DIGEST_LENGTH);
-  hmac_sha256_Update(hash, context, context_size);
-  hmac_sha256_Update(hash, &number, 1);
-  hmac_sha256_Final(hash, out32);
-}
-
-void nonce_generator_init(HMAC_SHA256_CTX *hash, const uint8_t *salt, uint8_t salt_size)
-{
-  hmac_sha256_Init(hash, (uint8_t *)salt, salt_size);
-}
-
-void nonce_generator_write(HMAC_SHA256_CTX *hash, const uint8_t *seed, uint8_t seed_size)
-{
-  hmac_sha256_Update(hash, seed, seed_size);
-}
-
-uint8_t nonce_generator_export_output_key(HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32)
-{
-  if (1 == number)
-  {
-    get_first_output_key_material(hash, context, context_size, okm32);
-  }
-  else
-  {
-    get_rest_output_key_material(hash, context, context_size, number, okm32, okm32);
-  }
-
-  return ++number;
-}
-
-uint8_t nonce_generator_export_scalar(HMAC_SHA256_CTX *hash, const uint8_t *context, uint8_t context_size, uint8_t number, uint8_t *okm32, scalar_t *out_scalar)
-{
-  scalar_clear(out_scalar);
-  do
-  {
-    number = nonce_generator_export_output_key(hash, context, context_size, number, okm32);
-  } while (!scalar_import_nnz(out_scalar, okm32));
-
-  return number;
 }
 
 int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLevels, SHA256_CTX *oracle)
@@ -286,88 +229,15 @@ void signature_sign_partial(const scalar_t *multisig_nonce, const secp256k1_gej 
   scalar_negate(out_k, out_k);
 }
 
-void fast_aux_schedule(fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry)
-{
-  const uint32_t *p = k->d;
-  const uint32_t nWordBits = sizeof(*p) << 3;
-
-  // assert(1 & nMaxOdd); // must be odd
-  unsigned int nVal = 0, nBitTrg = 0;
-
-  while (iBitsRemaining--)
-  {
-    nVal <<= 1;
-    if (nVal > nMaxOdd)
-      break;
-
-    uint32_t n = p[iBitsRemaining / nWordBits] >> (iBitsRemaining & (nWordBits - 1));
-
-    if (1 & n)
-    {
-      nVal |= 1;
-      aux->odd = nVal;
-      nBitTrg = iBitsRemaining;
-    }
-  }
-
-  if (nVal > 0)
-  {
-    aux->next_item = pTbl[nBitTrg];
-    pTbl[nBitTrg] = iThisEntry;
-  }
-}
-
 void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *res)
 {
-  static const int nMaxOdd = (1 << 5) - 1;      // 31
-  static const int nCount = (nMaxOdd >> 1) + 2; // we need a single even: x2
-  static const uint32_t nBytes = 32;
-  static const uint32_t nBits = nBytes << 3;
+  multi_mac_casual_t mc;
+  multi_mac_casual_init(&mc, pt, sk);
 
-  secp256k1_gej m_pPt[nCount];
-  m_pPt[1] = *pt;
-
-  fast_aux_t m_Aux = {0};
-  unsigned int m_nPrepared = 1;
-
-  secp256k1_gej_set_infinity(res);
-
-  unsigned int pTblCasual[nBits];
-  unsigned int pTblPrepared[nBits];
-
-  memset(pTblCasual, 0, sizeof(pTblCasual));
-  memset(pTblPrepared, 0, sizeof(pTblPrepared));
-
-  fast_aux_schedule(&m_Aux, sk, nBits, nMaxOdd, pTblCasual, 1);
-
-  for (unsigned int iBit = nBits; iBit--;)
-  {
-    if (!secp256k1_gej_is_infinity(res))
-      secp256k1_gej_double_var(res, res, NULL);
-
-    while (pTblCasual[iBit])
-    {
-      unsigned int iEntry = pTblCasual[iBit];
-      pTblCasual[iBit] = m_Aux.next_item;
-
-      // assert(1 & m_Aux.odd);
-      unsigned int nElem = (m_Aux.odd >> 1) + 1;
-      // assert(nElem < nCount);
-
-      for (; m_nPrepared < nElem; m_nPrepared++)
-      {
-        if (1 == m_nPrepared)
-        {
-          secp256k1_gej_double_var(&m_pPt[0], &m_pPt[1], NULL);
-        }
-        secp256k1_gej_add_var(&m_pPt[m_nPrepared + 1], &m_pPt[m_nPrepared], &m_pPt[0], NULL);
-      }
-
-      secp256k1_gej_add_var(res, res, &m_pPt[nElem], NULL);
-
-      fast_aux_schedule(&m_Aux, sk, iBit, nMaxOdd, pTblCasual, iEntry);
-    }
-  }
+  multi_mac_t mm;
+  mm.casual = &mc;
+  mm.n_casual = 1;
+  multi_mac_calculate(&mm, res);
 }
 
 void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const secp256k1_gej *G_pts, const secp256k1_gej *J_pts, HKdf_pub_packed_t *packed)

@@ -12,7 +12,8 @@
 #define DIGEST_LENGTH 32
 #define N_BYTES 32
 #define N_BITS (N_BYTES << 3)
-#define N_BITS_PER_LEVEL 4
+// #define N_BITS_PER_LEVEL 4
+#define N_BITS_PER_LEVEL 2
 #define N_POINTS_PER_LEVEL (1 << N_BITS_PER_LEVEL) //16
 #define N_LEVELS (N_BITS / N_BITS_PER_LEVEL)
 
@@ -22,6 +23,7 @@
 #define _FOURCC_FROM(name) _FOURCC_CONST(_ARRAY_ELEMENT_SAFE(#name, 0), _ARRAY_ELEMENT_SAFE(#name, 1), _ARRAY_ELEMENT_SAFE(#name, 2), _ARRAY_ELEMENT_SAFE(#name, 3))
 
 #define static_assert(condition)((void)sizeof(char[1 - 2 * !(condition)]))
+#define UNUSED(x) (void)(x)
 
 typedef struct
 {
@@ -59,12 +61,6 @@ typedef struct
 
 typedef struct
 {
-  unsigned int next_item;
-  unsigned int odd;
-} fast_aux_t;
-
-typedef struct
-{
   scalar_t cofactor;
   // according to rfc5869
   uint8_t generator_secret[DIGEST_LENGTH];
@@ -92,27 +88,35 @@ typedef struct
   uint32_t sub_idx;
 } key_id_t;
 
+#define _RANGEPROOF_AMOUNT_MINIMUM_VALUE 1
 typedef struct
 {
   key_id_t id;
   uint64_t value;
-} key_id_value_t;
+} key_idv_t;
 
 #pragma pack(push, 1)
 typedef struct
 {
-  uint64_t idx;
-  uint32_t type;
-  uint32_t sub_idx;
+  uint8_t idx[8];
+  uint8_t type[4];
+  uint8_t sub_idx[4];
 } packed_key_id_t;
+
 #pragma pack(pop)
 
+typedef struct
+{
+  uint8_t seed[32];
+  key_idv_t kidv;
+} rangeproof_creator_params_t;
+
 #pragma pack(push, 1)
-  typedef struct
-  {
-    packed_key_id_t kid;
-    uint8_t checksum[DIGEST_LENGTH];
-  } rangeproof_public_recovery_t;
+typedef struct
+{
+  packed_key_id_t kid;
+  uint8_t checksum[DIGEST_LENGTH];
+} rangeproof_public_recovery_t;
 #pragma pack(pop)
 
 typedef struct
