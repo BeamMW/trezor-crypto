@@ -53,7 +53,36 @@ void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_
     scalar_import_nnz(scalar_out, scalar_res);
 }
 
-void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_id_value_t* kidv, int has_commitment, const secp256k1_gej* h_gen)
+void switch_commitment(const uint8_t *asset_id, secp256k1_gej* h_gen)
+{
+  if (asset_id && !(memis0(asset_id, 32)))
+  {
+    SHA256_CTX oracle;
+    sha256_Init(&oracle);
+    sha256_Update(&oracle, (const uint8_t *)"a-id", 5);
+    sha256_Update(&oracle, asset_id, 32);
+
+    point_t pt;
+    pt.y = 0;
+
+    do
+    {
+      sha256_Update(&oracle, (const uint8_t *)"a-gen", 6);
+
+      SHA256_CTX new_oracle;
+      memcpy(&new_oracle, &oracle, sizeof(SHA256_CTX));
+      sha256_Final(&new_oracle, pt.x);
+
+      sha256_Update(&oracle, pt.x, SHA256_DIGEST_LENGTH);
+    } while (!point_import_nnz(h_gen, &pt));
+  }
+  else
+  {
+    secp256k1_gej_set_infinity(h_gen);
+  }
+}
+
+void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_idv_t* kidv, int has_commitment, const secp256k1_gej* h_gen)
 {
     uint8_t hash_id[DIGEST_LENGTH];
     generate_hash_id(kidv->id.idx, kidv->id.type, kidv->id.sub_idx, hash_id);
@@ -100,7 +129,7 @@ void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, transacti
 {
     tx_input_t* input = malloc(sizeof(tx_input_t));
 
-    key_id_value_t kidv;
+    key_idv_t kidv;
     //TEST<Kirill A>: Test only
     //kidv.idx = 1;
     random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
@@ -148,7 +177,7 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     sha256_Update(&hp, kernel->kernel.tx_element.commitment.x, DIGEST_LENGTH);
     sha256_write_8(&hp, kernel->kernel.tx_element.commitment.y);
     sha256_write_64(&hp, kernel->kernel.asset_emission);
-    const uint8_t is_empty_kernel_hash_lock_preimage = memis0(kernel->kernel.hash_lock_preimage);
+    const uint8_t is_empty_kernel_hash_lock_preimage = memis0(kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
     const uint8_t is_non_empty_kernel_hash_lock_preimage = ! is_empty_kernel_hash_lock_preimage;
     sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
 

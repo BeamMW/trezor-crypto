@@ -5,36 +5,6 @@
 #include "internal.h"
 #include "sha2.h"
 
-secp256k1_gej switch_commitment(const uint8_t *asset_id)
-{
-  secp256k1_gej h_gen;
-  if (asset_id && !(memis0(asset_id, 32)))
-  {
-    SHA256_CTX oracle;
-    sha256_Init(&oracle);
-    sha256_Update(&oracle, (const uint8_t *)"a-id", 5);
-    sha256_Update(&oracle, asset_id, 32);
-
-    point_t pt;
-    pt.y = 0;
-
-    do
-    {
-      sha256_Update(&oracle, (const uint8_t *)"a-gen", 6);
-
-      SHA256_CTX new_oracle;
-      memcpy(&new_oracle, &oracle, sizeof(SHA256_CTX));
-      sha256_Final(&new_oracle, pt.x);
-
-      sha256_Update(&oracle, pt.x, SHA256_DIGEST_LENGTH);
-    } while (!point_import_nnz(&h_gen, &pt));
-  }
-  else
-  {
-    secp256k1_gej_set_infinity(&h_gen);
-  }
-  return h_gen;
-}
 
 void rangeproof_public_xcrypt_kid(packed_key_id_t *kid, const rangeproof_creator_params_t *cp, uint8_t *checksum)
 {
@@ -49,7 +19,7 @@ void rangeproof_public_xcrypt_kid(packed_key_id_t *kid, const rangeproof_creator
 
 void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, const rangeproof_creator_params_t *cp, SHA256_CTX *oracle)
 {
-  out->value = cp->kidv.amount_value;
+  out->value = cp->kidv.value;
   if (out->value >= _RANGEPROOF_AMOUNT_MINIMUM_VALUE)
   {
     memset(&out->recovery.kid, 0, sizeof(out->recovery.kid));

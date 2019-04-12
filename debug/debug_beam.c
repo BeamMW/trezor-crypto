@@ -4,8 +4,7 @@
 #include "../beam/functions.h"
 #include "base64.h"
 #include "../beam/rangeproof.h"
-
-#define DIGEST_LENGTH 32
+#include "../beam/kernel.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -134,14 +133,15 @@ int main(void)
   const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
   const uint8_t sk_bytes[] = {0x96, 0x6b, 0xdc, 0xea, 0x97, 0x7e, 0x01, 0x3e, 0x67, 0xfc, 0xe1, 0x41, 0xa1, 0x3e, 0xe9, 0x70, 0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab};
 
-  secp256k1_gej asset_tag_h_gen = switch_commitment(asset_id);
+  secp256k1_gej asset_tag_h_gen;
+  switch_commitment(asset_id, &asset_tag_h_gen);
   printf("\n\nAssetTag: expected: 1caeb2f, real: ");
   printf("%x", asset_tag_h_gen.x.n[0]);
   printf("\n");
   
   rangeproof_creator_params_t crp;
   memset(crp.seed, 1, 32);
-  crp.kidv.amount_value = 345000;
+  crp.kidv.value = 345000;
   crp.kidv.id.idx = 1;
   crp.kidv.id.type = 11;
   crp.kidv.id.sub_idx = 111;
@@ -156,7 +156,7 @@ int main(void)
   DEBUG_PRINT("checksum:", rp.recovery.checksum, 32);
   VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
   secp256k1_gej comm;
-  asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.amount_value, &comm);
+  asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.value, &comm);
   printAsBytes("comm", &comm, sizeof(comm));
   free_context();
   malloc_stats();
