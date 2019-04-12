@@ -3,6 +3,12 @@
 #include "functions.h"
 
 
+void test_set_buffer(void* p, uint32_t n, uint8_t value)
+{
+	for (uint32_t i = 0; i < n; i++)
+		((uint8_t*) p)[i] = value;
+}
+
 int bigint_cmp(const uint8_t* pSrc0, uint32_t nSrc0, const uint8_t* pSrc1, uint32_t nSrc1)
 {
     if (nSrc0 > nSrc1)

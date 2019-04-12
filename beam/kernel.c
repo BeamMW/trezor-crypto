@@ -132,7 +132,8 @@ void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, transacti
     key_idv_t kidv;
     //TEST<Kirill A>: Test only
     //kidv.idx = 1;
-    random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
+    //random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
+    test_set_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx), 3);
     kidv.id.sub_idx = 0;
     kidv.id.type = get_context()->key.Regular;
     kidv.value = val;

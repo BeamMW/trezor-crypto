@@ -66,6 +66,16 @@ int IS_EQUAL_HEX(const char *hex_str, const uint8_t *bytes, size_t str_size)
 
 int main(void)
 {
+    tx_inputs_vec_t inputs;
+    vec_init(&inputs);
+
+    scalar_t peer_sk;
+
+
+}
+
+int main2(void)
+{
   random_reseed(time(NULL));
   init_context();
 
