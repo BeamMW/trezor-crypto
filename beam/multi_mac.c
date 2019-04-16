@@ -1,5 +1,24 @@
 #include "multi_mac.h"
 
+void multi_mac_with_bufs_alloc(multi_mac_t *mm, int max_casual, int max_prepared)
+{
+  mm->casual = malloc(max_casual * sizeof(multi_mac_casual_t));
+  mm->prepared = malloc(max_prepared * sizeof(multi_mac_prepared_t*));
+  mm->k_prepared = malloc(max_prepared * sizeof(scalar_t));
+  mm->aux_prepared = malloc(max_prepared * sizeof(_multi_mac_fast_aux_t));
+
+  mm->n_casual = 0;
+  mm->n_prepared = 0;
+}
+
+void multi_mac_with_bufs_free(multi_mac_t *mm)
+{
+  free(mm->casual);
+  free(mm->prepared);
+  free(mm->k_prepared);
+  free(mm->aux_prepared);
+}
+
 void multi_mac_casual_init(multi_mac_casual_t *casual, const secp256k1_gej *p, const scalar_t *k)
 {
   casual->pt[1] = *p;
@@ -46,11 +65,15 @@ void multi_mac_calculate(multi_mac_t *mm, secp256k1_gej *res)
   secp256k1_gej_set_infinity(res);
 
   uint32_t pTblCasual[nBits];
-  // unsigned int pTblPrepared[nBits];
+  unsigned int pTblPrepared[nBits];
 
   memset(pTblCasual, 0, sizeof(pTblCasual));
-  // memset(pTblPrepared, 0, sizeof(pTblPrepared));
+  memset(pTblPrepared, 0, sizeof(pTblPrepared));
 
+  for(size_t i = 0; i < mm->n_prepared; i++)
+  {
+    multi_mac_fast_aux_schedule(&mm->aux_prepared[i], &mm->k_prepared[i], nBits, MULTI_MAC_PREPARED_MAX_ODD, pTblPrepared, i + 1);
+  }
   for (size_t i = 0; i < mm->n_casual; i++)
   {
     multi_mac_casual_t *x = &mm->casual[i];
@@ -81,6 +104,19 @@ void multi_mac_calculate(multi_mac_t *mm, secp256k1_gej *res)
       secp256k1_gej_add_var(res, res, &x->pt[nElem], NULL);
 
       multi_mac_fast_aux_schedule(&x->aux, &x->k, iBit, MULTI_MAC_CASUAL_MAX_ODD, pTblCasual, iEntry);
+    }
+
+    while (pTblPrepared[iBit])
+    {
+      unsigned int iEntry = pTblPrepared[iBit];
+      _multi_mac_fast_aux_t *x = &mm->aux_prepared[iEntry - 1];
+      pTblPrepared[iBit] = x->next_item;
+
+      unsigned int nElem = (x->odd >> 1);
+
+      secp256k1_gej_add_var(res, res, &mm->prepared[iEntry - 1]->pt[nElem], NULL);
+
+      multi_mac_fast_aux_schedule(x, &mm->k_prepared[iEntry - 1], iBit, MULTI_MAC_PREPARED_MAX_ODD, pTblPrepared, iEntry);
     }
   }
 }

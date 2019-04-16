@@ -1,5 +1,6 @@
 #include "definitions.h"
 #include "internal.h"
+#include "multi_mac.h"
 #include "sha2.h"
 
 #define INNER_PRODUCT_N_DIM    64U // sizeof(uint64_t/*amount*/) << 3
@@ -19,6 +20,7 @@ typedef struct
 typedef struct
 {
   _inner_product_modifier_expanded_t mod;
+  multi_mac_t mm;
   uint32_t gen_order;
   const scalar_t *src[2];
 } inner_product_calculator_t;
@@ -65,11 +67,12 @@ void inner_product_modifier_expanded_set(_inner_product_modifier_expanded_t *mod
     *dst = *src;
 }
 
-void inner_product_create(SHA256_CTX *oracle, const secp256k1_gej *ab, const scalar_t *dot_ab,
+void inner_product_create(SHA256_CTX *oracle, secp256k1_gej *ab, const scalar_t *dot_ab,
                           const scalar_t *a, const scalar_t *b, inner_product_modifier_t *mod)
 {
   inner_product_calculator_t calc;
   inner_product_modifier_expanded_init(&calc.mod, mod);
+  multi_mac_with_bufs_alloc(&calc.mm, 8, 128);
   calc.gen_order = INNER_PRODUCT_N_CYCLES;
   calc.src[0] = a;
   calc.src[1] = b;
@@ -77,14 +80,23 @@ void inner_product_create(SHA256_CTX *oracle, const secp256k1_gej *ab, const sca
   if (ab)
   {
     for (uint32_t j = 0; j < 2; j++)
-      // for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++, c.m_Mm.m_Prepared++)
+    {
+      for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++, calc.mm.n_prepared++)
       {
-        // c.m_Mm.m_ppPrepared[c.m_Mm.m_Prepared] = &Context::get().m_Ipp.m_pGen_[j][i];
-        // inner_product_modifier_expanded_set(&calc.mod, ...)
+        calc.mm.prepared[calc.mm.n_prepared] = (multi_mac_prepared_t *)get_generator_ipp(i, j, 0);
+        inner_product_modifier_expanded_set(&calc.mod, &calc.mm.k_prepared[calc.mm.n_prepared], &calc.src[j][i], i, j);
       }
+    }
+    multi_mac_calculate(&calc.mm, ab);
 
-    // c.m_Mm.Calculate(*pAB);
-    // oracle << *pAB;
+    point_t pt;
+    export_gej_to_point(ab, &pt);
+    sha256_Update(oracle, pt.x, 32);
+    sha256_write_8(oracle, pt.y);
   }
+
+  UNUSED(dot_ab);
   // ...
+
+  multi_mac_with_bufs_free(&calc.mm);
 }

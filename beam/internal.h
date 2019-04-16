@@ -39,7 +39,7 @@ int point_import_nnz(secp256k1_gej *gej, const point_t *point);
 
 void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej);
 
-int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point);
+int export_gej_to_point(const secp256k1_gej *native_point, point_t *out_point);
 
 int create_pts(secp256k1_gej *pPts, const secp256k1_gej *in_gpos, uint32_t nLevels, SHA256_CTX *oracle);
 

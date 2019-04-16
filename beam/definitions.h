@@ -218,4 +218,6 @@ secp256k1_gej *get_generator_J(void);
 
 secp256k1_gej *get_generator_H(void);
 
+secp256k1_gej *get_generator_ipp(size_t i, size_t j, size_t z);
+
 #endif //_TYPES_

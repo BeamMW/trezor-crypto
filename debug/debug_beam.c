@@ -4,6 +4,8 @@
 #include "../beam/functions.h"
 #include "base64.h"
 #include "../beam/rangeproof.h"
+#include "../beam/inner_product.h"
+#include "definitions_test.h"
 
 #define DIGEST_LENGTH 32
 
@@ -158,6 +160,27 @@ int main(void)
   secp256k1_gej comm;
   asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.amount_value, &comm);
   printAsBytes("comm", &comm, sizeof(comm));
+
+  scalar_t dot;
+  scalar_t *pA = get_pa();
+  scalar_t *pB = get_pb();
+  inner_product_get_dot(&dot, pA, pB);
+
+  uint8_t tmp[sizeof(scalar_t)];
+  memcpy(tmp, &dot, sizeof(scalar_t));
+  DEBUG_PRINT("------dot    ", tmp, sizeof(scalar_t));
+  const uint8_t pwrMul[] = {0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab, 0xd4, 0x5e, 0xe9, 0x58, 0x17, 0x05, 0x5d, 0x25, 0x5a, 0xa3, 0x58, 0x31, 0xb7, 0x0d, 0x32, 0x66};
+
+  inner_product_modifier_t mod;
+  inner_product_modifier_init(&mod);
+  mod.multiplier[1] = (scalar_t *)pwrMul;
+
+  SHA256_CTX oraclee;
+  inner_product_create(&oraclee, &comm, &dot, pA, pB, &mod);
+  uint8_t comm_tmp[sizeof(secp256k1_gej)];
+  memcpy(comm_tmp, &comm, sizeof(secp256k1_gej));
+  DEBUG_PRINT("comm(pAB)", comm_tmp, sizeof(secp256k1_gej));
+
   free_context();
   malloc_stats();
 }
