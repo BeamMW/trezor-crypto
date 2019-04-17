@@ -33,9 +33,17 @@
 				return -1;
 
 void test_set_buffer(void* data, uint32_t size, uint8_t value);
+
+void transaction_init(transaction_t* transaction);
+void signature_init(ecc_signature_t* signature);
+void point_init(point_t* point);
+void tx_element_init(tx_element_t* tx_element);
+void kernel_init(tx_kernel_t* kernel);
+void HKdf_init(HKdf_t* kdf);
+
+int bigint_cmp(const uint8_t* pSrc0, uint32_t nSrc0, const uint8_t* pSrc1, uint32_t nSrc1);
 int point_cmp(const point_t* lhs, const point_t* rhs);
 int tx_element_cmp(const tx_element_t* lhs, const tx_element_t* rhs);
-int bigint_cmp(const uint8_t* pSrc0, uint32_t nSrc0, const uint8_t* pSrc1, uint32_t nSrc1);
 int signature_cmp(const ecc_signature_t* lhs, const ecc_signature_t* rhs);
 int kernel_cmp(const tx_kernel_t* lhs, const tx_kernel_t* rhs);
 

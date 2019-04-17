@@ -114,7 +114,8 @@ void peer_finalize_excess(scalar_t* peer_scalar, secp256k1_gej* kG, scalar_t* k_
     scalar_add(k_offset, k_offset, peer_scalar);
 
     uint8_t random_scalar_data[DIGEST_LENGTH];
-    random_buffer(random_scalar_data, DIGEST_LENGTH);
+    //random_buffer(random_scalar_data, DIGEST_LENGTH);
+    test_set_buffer(random_scalar_data, DIGEST_LENGTH, 3);
     scalar_set_b32(peer_scalar, random_scalar_data, NULL);
     scalar_add(k_offset, k_offset, peer_scalar);
 
@@ -125,7 +126,7 @@ void peer_finalize_excess(scalar_t* peer_scalar, secp256k1_gej* kG, scalar_t* k_
     secp256k1_gej_add_var(kG, kG, &peer_scalar_mul_g, NULL);
 }
 
-void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, transaction_t* t, uint64_t val, HKdf_t* kdf, const uint8_t* asset_id)
+void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, uint64_t val, HKdf_t* kdf, const uint8_t* asset_id)
 {
     tx_input_t* input = malloc(sizeof(tx_input_t));
 
@@ -184,7 +185,8 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
 
     if (is_empty_kernel_hash_lock_preimage)
     {
-        if (hash_lock_preimage)
+        if (0)
+        //if (hash_lock_preimage)
         {
             SHA256_CTX hash_lock_ctx;
             sha256_Update(&hash_lock_ctx, kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
@@ -249,7 +251,8 @@ void cosign_kernel_part_1(tx_kernel_t* kernel,
 
         // Nonces are initialized as a random buffer
         uint8_t random_scalar_data[DIGEST_LENGTH];
-        random_buffer(random_scalar_data, DIGEST_LENGTH);
+        //random_buffer(random_scalar_data, DIGEST_LENGTH);
+        test_set_buffer(random_scalar_data, DIGEST_LENGTH, 3);
         scalar_set_b32(&peer_nonces[i], random_scalar_data, NULL);
         secp256k1_gej nonce_mul_g;
         generator_mul_scalar(&nonce_mul_g, get_context()->generator.G_pts, &peer_nonces[i]);
@@ -307,23 +310,24 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
     //TODO<Kirill A>: be careful to move data out of the vector
     memmove(kernel->nested_kernels.data, nested_kernels->data, nested_kernels->length * sizeof(tx_kernel_t));
 
-    uint8_t preimage[32];
-    random_buffer(preimage, 32);
+    uint8_t preimage[DIGEST_LENGTH];
+    //random_buffer(preimage, 32);
+    test_set_buffer(preimage, DIGEST_LENGTH, 3);
 
-    uint8_t lock_image[32];
+    uint8_t lock_image[DIGEST_LENGTH];
     SHA256_CTX x;
     sha256_Init(&x);
-    sha256_Update(&x, preimage, 32);
+    sha256_Update(&x, preimage, DIGEST_LENGTH);
     sha256_Final(&x, lock_image);
 
     if (should_emit_custom_tag)
     {
-        uint8_t sk_asset_data[32];
-        random_buffer(sk_asset_data, 32);
+        uint8_t sk_asset_data[DIGEST_LENGTH];
+        random_buffer(sk_asset_data, DIGEST_LENGTH);
         scalar_t sk_asset;
         scalar_import_nnz(&sk_asset, sk_asset_data);
 
-        uint8_t aid[32];
+        uint8_t aid[DIGEST_LENGTH];
         sk_to_pk(&sk_asset, get_context()->generator.G_pts, aid);
 
         uint64_t val_asset = 4431;
@@ -337,7 +341,7 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
         tx_kernel_t* kernel_emission = malloc(sizeof(tx_kernel_t));
         kernel_emission->kernel.asset_emission = val_asset;
         //TODO<Kirill A>: Why do we need these 2 following lines?!
-        memcpy(kernel_emission->kernel.tx_element.commitment.x, aid, 32);
+        memcpy(kernel_emission->kernel.tx_element.commitment.x, aid, DIGEST_LENGTH);
         kernel_emission->kernel.tx_element.commitment.y = 0;
 
         secp256k1_gej commitment_native;
@@ -361,7 +365,7 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
 
     //// finish HL: add hash preimage
     //pKrn->m_pHashLock->m_Preimage = hlPreimage;
-    memcpy(kernel->kernel.hash_lock_preimage, preimage, 32);
+    memcpy(kernel->kernel.hash_lock_preimage, preimage, DIGEST_LENGTH);
     //verify_test(pKrn->IsValid(fee2, exc));
 
     vec_push(trg_kernels, kernel);

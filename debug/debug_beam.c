@@ -5,6 +5,7 @@
 #include "base64.h"
 #include "../beam/rangeproof.h"
 #include "../beam/kernel.h"
+#include "../beam/misc.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -21,6 +22,15 @@
       printf(ANSI_COLOR_RED "Test failed!" ANSI_COLOR_CYAN " Line=%u" ANSI_COLOR_RESET ", Expression: %s\n", __LINE__, #x);   \
     else                                                                                                                      \
       printf(ANSI_COLOR_GREEN "Test passed!" ANSI_COLOR_CYAN " Line=%u" ANSI_COLOR_RESET ", Expression: %s\n", __LINE__, #x); \
+  } while (0)
+
+#define VERIFY_TEST_EQUAL(x, msg, left_desc, right_desc)                                                                                     \
+  do                                                                                                                          \
+  {                                                                                                                           \
+    if (!(x))                                                                                                                 \
+      printf(ANSI_COLOR_RED "Test failed!" ANSI_COLOR_RESET ", %s. Expression: %s == %s\n", msg, left_desc, right_desc);   \
+    else                                                                                                                      \
+      printf(ANSI_COLOR_GREEN "Test passed!" ANSI_COLOR_RESET ", %s. Expression: %s == %s\n", msg, left_desc, right_desc); \
   } while (0)
 
 #define DEBUG_PRINT(msg, arr, len)                                               \
@@ -64,14 +74,72 @@ int IS_EQUAL_HEX(const char *hex_str, const uint8_t *bytes, size_t str_size)
   return memcmp(tmp, bytes, str_size / 2) == 0;
 }
 
+void verify_scalar_data(const char* msg, const char* hex_data, const scalar_t* sk)
+{
+    uint8_t sk_data[DIGEST_LENGTH];
+    scalar_get_b32(sk_data, sk);
+    DEBUG_PRINT(msg, sk_data, DIGEST_LENGTH);
+    VERIFY_TEST_EQUAL(IS_EQUAL_HEX(hex_data, sk_data, DIGEST_LENGTH), msg, hex_data, "sk");
+}
+
 int main(void)
 {
+    init_context();
+
     tx_inputs_vec_t inputs;
     vec_init(&inputs);
 
+    transaction_t transaction;
+    transaction_init(&transaction);
+    HKdf_t kdf;
+    HKdf_init(&kdf);
+    //DEBUG_PRINT("KDF: ", kdf.generator_secret, DIGEST_LENGTH);
     scalar_t peer_sk;
+    scalar_clear(&peer_sk);
 
+    // Test Add Input
+    peer_add_input(&transaction.inputs, &peer_sk, 100, &kdf, NULL);
+    verify_scalar_data("Peer sk data: ", "ce14a6bd640c284fc4c97f3eb2d8f99569c151bce08e0033f395814cb39b4d05", &peer_sk);
+    peer_add_input(&transaction.inputs, &peer_sk, 3000, &kdf, NULL);
+    peer_add_input(&transaction.inputs, &peer_sk, 2000, &kdf, NULL);
+    verify_scalar_data("Peer sk data: ", "8b353049229348f3b04e841b7b8f19941303712b07acf9a90c0eaacd51fb3c98", &peer_sk);
 
+    uint64_t fee1 = 100;
+    tx_kernel_t kernel;
+    kernel_init(&kernel);
+    kernel.kernel.fee = fee1;
+    secp256k1_gej kG;
+    secp256k1_gej xG;
+    secp256k1_gej_set_infinity(&kG);
+    secp256k1_gej_set_infinity(&xG);
+    scalar_t peer_nonce;
+    scalar_clear(&peer_nonce);
+    uint8_t kernel_hash_message[DIGEST_LENGTH];
+
+    uint8_t preimage[DIGEST_LENGTH];
+    //random_buffer(preimage, 32);
+    test_set_buffer(preimage, DIGEST_LENGTH, 3);
+
+    uint8_t hash_lock_preimage[DIGEST_LENGTH];
+    SHA256_CTX x;
+    sha256_Init(&x);
+    sha256_Update(&x, preimage, DIGEST_LENGTH);
+    sha256_Final(&x, hash_lock_preimage);
+
+    cosign_kernel_part_1(&kernel,
+                         &kG, &xG,
+                         &peer_sk, &peer_nonce, 1,
+                         &transaction.offset, kernel_hash_message,
+                         //TODO: Valdo said we have no hash lock in kernels currently
+                         hash_lock_preimage);
+    DEBUG_PRINT("Hash lock msg: ", kernel_hash_message, DIGEST_LENGTH);
+    DEBUG_PRINT("Kernel commitment X: ", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH);
+    printf("Kernel commitment Y: %u\n", kernel.kernel.tx_element.commitment.y);
+    VERIFY_TEST(IS_EQUAL_HEX("531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337", kernel.kernel.tx_element.commitment.x, 64));
+    VERIFY_TEST(kernel.kernel.tx_element.commitment.y == 1);
+    verify_scalar_data("Transaction offset: ", "8e38334c25964bf6b351871e7e921c971606742e0aaffcac0f11add054fe3f9b", &transaction.offset);
+
+    return 0;
 }
 
 int main2(void)
@@ -170,4 +238,6 @@ int main2(void)
   printAsBytes("comm", &comm, sizeof(comm));
   free_context();
   malloc_stats();
+
+  return 0;
 }

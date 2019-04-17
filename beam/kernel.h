@@ -15,7 +15,7 @@ void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_
                                scalar_t* scalar_out);
 void peer_finalize_excess(scalar_t* peer_scalar, secp256k1_gej* kG, scalar_t* k_offset);
 void peer_add_input(tx_inputs_vec_t* tx_inputs,
-                    scalar_t* peer_scalar, transaction_t* t,
+                    scalar_t* peer_scalar,
                     uint64_t val, HKdf_t* kdf,
                     const uint8_t* asset_id);
 void create_tx_kernel(tx_kernel_t* trg_kernels, uint32_t num_trg_kernels,
@@ -29,7 +29,7 @@ void kernel_get_hash(const tx_kernel_t* kernel, const uint8_t* hash_lock_preimag
 void cosign_kernel_part_1(tx_kernel_t* kernel,
                           secp256k1_gej* kG, secp256k1_gej* xG,
                           scalar_t* peer_scalars, scalar_t* peer_nonces, size_t num_peers,
-                          scalar_t* transaction_offset, uint8_t kernel_hash_message,
+                          scalar_t* transaction_offset, uint8_t* kernel_hash_message,
                           const uint8_t* hash_lock_preimage);
 
 #endif // __BEAM_KERNEL__

@@ -1,4 +1,5 @@
 #include "misc.h"
+#include "memzero.h"
 #include "internal.h"
 #include "functions.h"
 
@@ -7,6 +8,51 @@ void test_set_buffer(void* p, uint32_t n, uint8_t value)
 {
 	for (uint32_t i = 0; i < n; i++)
 		((uint8_t*) p)[i] = value;
+}
+
+void transaction_init(transaction_t* t)
+{
+    scalar_clear(&t->offset);
+    vec_init(&t->inputs);
+    vec_init(&t->outputs);
+    vec_init(&t->kernels);
+}
+
+void signature_init(ecc_signature_t* signature)
+{
+    scalar_clear(&signature->k);
+    secp256k1_gej_set_infinity(&signature->nonce_pub);
+}
+
+void point_init(point_t* point)
+{
+    memzero(point->x, DIGEST_LENGTH);
+    point->y = 0;
+}
+
+void tx_element_init(tx_element_t* tx_element)
+{
+    point_init(&tx_element->commitment);
+    tx_element->maturity_height = 0;
+}
+
+void kernel_init(tx_kernel_t* kernel)
+{
+    vec_init(&kernel->nested_kernels);
+    signature_init(&kernel->kernel.signature);
+    tx_element_init(&kernel->kernel.tx_element);
+
+    kernel->kernel.fee = 0;
+    kernel->kernel.min_height = 0;
+    kernel->kernel.max_height = 0;
+    kernel->kernel.asset_emission = 0;
+    memzero(kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
+}
+
+void HKdf_init(HKdf_t* kdf)
+{
+    scalar_set_int(&kdf->cofactor, 1);
+    memzero(kdf->generator_secret, DIGEST_LENGTH);
 }
 
 int bigint_cmp(const uint8_t* pSrc0, uint32_t nSrc0, const uint8_t* pSrc1, uint32_t nSrc1)
