@@ -182,15 +182,20 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     const uint8_t is_empty_kernel_hash_lock_preimage = memis0(kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
     const uint8_t is_non_empty_kernel_hash_lock_preimage = ! is_empty_kernel_hash_lock_preimage;
     sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
+    printf("Is non-empty hashlock: %u\n", is_non_empty_kernel_hash_lock_preimage);
+    printf("Is empty hashlock: %u\n", is_empty_kernel_hash_lock_preimage);
 
-    if (is_empty_kernel_hash_lock_preimage)
+    if (is_non_empty_kernel_hash_lock_preimage)
     {
-        if (0)
-        //if (hash_lock_preimage)
+        if (! hash_lock_preimage)
         {
             SHA256_CTX hash_lock_ctx;
             sha256_Update(&hash_lock_ctx, kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
             sha256_Final(&hash_lock_ctx, hash_value);
+
+            //TODO: if this correct?
+            //pLockImage = &hv;
+            hash_lock_preimage = hash_value;
         }
 
         sha256_Update(&hp, hash_lock_preimage, DIGEST_LENGTH);
@@ -203,7 +208,7 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     const tx_kernel_t* zero_kernel = NULL;
     for (size_t i = 0; i < (size_t)kernel->nested_kernels.length; ++i)
     {
-        const uint8_t should_break = 1;
+        const uint8_t should_break = 0;
         sha256_write_8(&hp, should_break);
 
         //TODO: to implement
@@ -217,6 +222,8 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
 
         //hp << hv;
     }
+    const uint8_t should_break = 1;
+    sha256_write_8(&hp, should_break);
     //TODO: Does this means that we extract from context?
     // hp >> hv
     sha256_Final(&hp, hash_value);

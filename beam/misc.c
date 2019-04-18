@@ -44,7 +44,7 @@ void kernel_init(tx_kernel_t* kernel)
 
     kernel->kernel.fee = 0;
     kernel->kernel.min_height = 0;
-    kernel->kernel.max_height = 0;
+    kernel->kernel.max_height = UINT64_MAX;
     kernel->kernel.asset_emission = 0;
     memzero(kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
 }

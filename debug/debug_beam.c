@@ -7,14 +7,6 @@
 #include "../beam/kernel.h"
 #include "../beam/misc.h"
 
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
-
 #define VERIFY_TEST(x)                                                                                                        \
   do                                                                                                                          \
   {                                                                                                                           \
@@ -33,14 +25,6 @@
       printf(ANSI_COLOR_GREEN "Test passed!" ANSI_COLOR_RESET ", %s. Expression: %s == %s\n", msg, left_desc, right_desc); \
   } while (0)
 
-#define DEBUG_PRINT(msg, arr, len)                                               \
-  printf(ANSI_COLOR_CYAN "Line=%u" ANSI_COLOR_RESET ", Msg=%s ", __LINE__, msg); \
-  printf(ANSI_COLOR_YELLOW);                                                     \
-  for (size_t i = 0; i < len; i++)                                               \
-  {                                                                              \
-    printf("%02x", arr[i]);                                                      \
-  }                                                                              \
-  printf(ANSI_COLOR_RESET "\n");
 
 void printAsBytes(const char *name, const void *mem, size_t len)
 {
@@ -132,12 +116,13 @@ int main(void)
                          &transaction.offset, kernel_hash_message,
                          //TODO: Valdo said we have no hash lock in kernels currently
                          hash_lock_preimage);
-    DEBUG_PRINT("Hash lock msg: ", kernel_hash_message, DIGEST_LENGTH);
     DEBUG_PRINT("Kernel commitment X: ", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH);
     printf("Kernel commitment Y: %u\n", kernel.kernel.tx_element.commitment.y);
-    VERIFY_TEST(IS_EQUAL_HEX("531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337", kernel.kernel.tx_element.commitment.x, 64));
+    VERIFY_TEST(IS_EQUAL_HEX("531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH * 2));
     VERIFY_TEST(kernel.kernel.tx_element.commitment.y == 1);
     verify_scalar_data("Transaction offset: ", "8e38334c25964bf6b351871e7e921c971606742e0aaffcac0f11add054fe3f9b", &transaction.offset);
+    DEBUG_PRINT("Hash lock msg: ", kernel_hash_message, DIGEST_LENGTH);
+    VERIFY_TEST(IS_EQUAL_HEX("d729163b2cd6e4345f795d0b7341ef30cbd96d9c38bd2e6341f50519af9d7190", kernel_hash_message, DIGEST_LENGTH * 2));
 
     return 0;
 }
