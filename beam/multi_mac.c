@@ -1,5 +1,11 @@
 #include "multi_mac.h"
 
+void multi_mac_reset(multi_mac_t *mm)
+{
+  mm->n_casual = 0;
+  mm->n_prepared = 0;
+}
+
 void multi_mac_with_bufs_alloc(multi_mac_t *mm, int max_casual, int max_prepared)
 {
   mm->casual = malloc(max_casual * sizeof(multi_mac_casual_t));
@@ -7,8 +13,7 @@ void multi_mac_with_bufs_alloc(multi_mac_t *mm, int max_casual, int max_prepared
   mm->k_prepared = malloc(max_prepared * sizeof(scalar_t));
   mm->aux_prepared = malloc(max_prepared * sizeof(_multi_mac_fast_aux_t));
 
-  mm->n_casual = 0;
-  mm->n_prepared = 0;
+  multi_mac_reset(mm);
 }
 
 void multi_mac_with_bufs_free(multi_mac_t *mm)
@@ -17,6 +22,8 @@ void multi_mac_with_bufs_free(multi_mac_t *mm)
   free(mm->prepared);
   free(mm->k_prepared);
   free(mm->aux_prepared);
+
+  multi_mac_reset(mm);
 }
 
 void multi_mac_casual_init(multi_mac_casual_t *casual, const secp256k1_gej *p, const scalar_t *k)

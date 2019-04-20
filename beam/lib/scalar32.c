@@ -814,3 +814,195 @@ void scalar_mul_shift_var(scalar_t *r, const scalar_t *a, const scalar_t *b, uns
   r->d[7] = shift < 288 ? (l[7 + shiftlimbs] >> shiftlow) : 0;
   scalar_cadd_bit(r, 0, (l[(shift - 1) >> 5] >> ((shift - 1) & 0x1f)) & 1);
 }
+
+void scalar_inverse(scalar_t *r, const scalar_t *x)
+{
+    scalar_t *t;
+    int i;
+    /* First compute x ^ (2^N - 1) for some values of N. */
+    scalar_t x2, x3, x4, x6, x7, x8, x15, x30, x60, x120, x127;
+
+    scalar_sqr(&x2,  x);
+    scalar_mul(&x2, &x2,  x);
+
+    scalar_sqr(&x3, &x2);
+    scalar_mul(&x3, &x3,  x);
+
+    scalar_sqr(&x4, &x3);
+    scalar_mul(&x4, &x4,  x);
+
+    scalar_sqr(&x6, &x4);
+    scalar_sqr(&x6, &x6);
+    scalar_mul(&x6, &x6, &x2);
+
+    scalar_sqr(&x7, &x6);
+    scalar_mul(&x7, &x7,  x);
+
+    scalar_sqr(&x8, &x7);
+    scalar_mul(&x8, &x8,  x);
+
+    scalar_sqr(&x15, &x8);
+    for (i = 0; i < 6; i++) {
+        scalar_sqr(&x15, &x15);
+    }
+    scalar_mul(&x15, &x15, &x7);
+
+    scalar_sqr(&x30, &x15);
+    for (i = 0; i < 14; i++) {
+        scalar_sqr(&x30, &x30);
+    }
+    scalar_mul(&x30, &x30, &x15);
+
+    scalar_sqr(&x60, &x30);
+    for (i = 0; i < 29; i++) {
+        scalar_sqr(&x60, &x60);
+    }
+    scalar_mul(&x60, &x60, &x30);
+
+    scalar_sqr(&x120, &x60);
+    for (i = 0; i < 59; i++) {
+        scalar_sqr(&x120, &x120);
+    }
+    scalar_mul(&x120, &x120, &x60);
+
+    scalar_sqr(&x127, &x120);
+    for (i = 0; i < 6; i++) {
+        scalar_sqr(&x127, &x127);
+    }
+    scalar_mul(&x127, &x127, &x7);
+
+    /* Then accumulate the final result (t starts at x127). */
+    t = &x127;
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 4; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 4; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 3; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x2); /* 11 */
+    for (i = 0; i < 4; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 5; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 4; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x2); /* 11 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 5; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x4); /* 1111 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 3; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 4; i++) { /* 000 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 10; i++) { /* 0000000 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 4; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 9; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x8); /* 11111111 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 3; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 3; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 5; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x4); /* 1111 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 5; i++) { /* 000 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x2); /* 11 */
+    for (i = 0; i < 4; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x2); /* 11 */
+    for (i = 0; i < 2; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 8; i++) { /* 000000 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x2); /* 11 */
+    for (i = 0; i < 3; i++) { /* 0 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, &x2); /* 11 */
+    for (i = 0; i < 3; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 6; i++) { /* 00000 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(t, t, x); /* 1 */
+    for (i = 0; i < 8; i++) { /* 00 */
+        scalar_sqr(t, t);
+    }
+    scalar_mul(r, t, &x6); /* 111111 */
+}
