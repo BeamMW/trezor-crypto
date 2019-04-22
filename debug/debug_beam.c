@@ -90,12 +90,20 @@ void test_range_proof_public(void)
   scalar_set_b32(&sk, sk_bytes, NULL);
   rangeproof_public_t rp;
   SHA256_CTX oracle;
+  sha256_Init(&oracle);
 
   memset(rp.recovery.checksum, 0, 32);
   rangeproof_public_create(&rp, &sk, &crp, &oracle);
   DEBUG_PRINT("checksum:", rp.recovery.checksum, 32);
   VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
-  
+
+  uint8_t hash_value[32];
+  secp256k1_gej pk;
+  sha256_Init(&oracle);
+  rangeproof_public_get_msg(&rp, hash_value, &oracle);
+  generator_mul_scalar(&pk, get_context()->generator.G_pts, &sk);
+  VERIFY_TEST(signature_is_valid(hash_value, &rp.signature, &pk, get_context()->generator.G_pts));
+
   secp256k1_gej comm;
   asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.amount_value, &comm);
   uint8_t comm_first_32[32];

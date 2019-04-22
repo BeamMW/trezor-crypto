@@ -80,7 +80,6 @@ typedef struct
   uint32_t sub_idx;
 } key_id_t;
 
-#define _RANGEPROOF_AMOUNT_MINIMUM_VALUE 1
 typedef struct
 {
   key_id_t id;
@@ -95,28 +94,6 @@ typedef struct
     uint8_t sub_idx[4];
   } packed_key_id_t;
 #pragma pack(pop)
-
-typedef struct
-{
-  uint8_t seed[32];
-  key_idv_t kidv;
-} rangeproof_creator_params_t;
-
-#pragma pack(push, 1)
-  typedef struct
-  {
-    packed_key_id_t kid;
-    uint8_t checksum[32];
-  } rangeproof_public_recovery_t;
-#pragma pack(pop)
-
-typedef struct
-{
-  ecc_signature_t signature;
-  uint64_t value;
-
-  rangeproof_public_recovery_t recovery;
-} rangeproof_public_t;
 
 typedef struct
 {
@@ -195,7 +172,7 @@ typedef struct
   // one of the following *must* be specified
 
   rangeproof_confidential_t* confidential_proof;
-  rangeproof_public_t* public_proof;
+  // rangeproof_public_t* public_proof;
 } tx_output_t;
 
 typedef struct

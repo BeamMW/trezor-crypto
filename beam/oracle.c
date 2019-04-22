@@ -21,3 +21,11 @@ void sha256_oracle_update_sk(SHA256_CTX *oracle, const scalar_t *sk)
   scalar_get_b32(sk_bytes, sk);
   sha256_Update(oracle, sk_bytes, 32);
 }
+
+void sha256_oracle_create(SHA256_CTX *oracle, uint8_t *out32)
+{
+  SHA256_CTX new_oracle;
+  memcpy(&new_oracle, oracle, sizeof(SHA256_CTX));
+  sha256_Final(&new_oracle, out32);
+  sha256_Update(oracle, out32, 32);
+}
