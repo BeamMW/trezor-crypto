@@ -6,8 +6,8 @@
 
 void test_set_buffer(void* p, uint32_t n, uint8_t value)
 {
-	for (uint32_t i = 0; i < n; i++)
-		((uint8_t*) p)[i] = value;
+    for (uint32_t i = 0; i < n; i++)
+        ((uint8_t*) p)[i] = value;
 }
 
 void transaction_init(transaction_t* t)
@@ -30,10 +30,38 @@ void point_init(point_t* point)
     point->y = 0;
 }
 
+void key_idv_init(key_idv_t* kidv)
+{
+    // TEST ONLY
+    //random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
+    test_set_buffer((uint8_t*)&kidv->id.idx, sizeof(kidv->id.idx), 3);
+    kidv->id.sub_idx = 0;
+    kidv->id.type = get_context()->key.Regular;
+    kidv->value = 0;
+}
+
 void tx_element_init(tx_element_t* tx_element)
 {
     point_init(&tx_element->commitment);
     tx_element->maturity_height = 0;
+}
+
+void tx_input_init(tx_input_t* input)
+{
+    tx_element_init(&input->tx_element);
+    input->_id = 0;
+}
+
+void tx_output_init(tx_output_t* output)
+{
+    tx_element_init(&output->tx_element);
+    // Regular output by default
+    output->is_coinbase = 0;
+    //TODO<Kirill> inspect if 0 as default value is good enough
+    output->incubation_height = 0;
+    memzero(output->asset_id, DIGEST_LENGTH);
+    // rangeproof_public will be init later with calling rangeproof_public_create
+    // same for the confidential one
 }
 
 void kernel_init(tx_kernel_t* kernel)

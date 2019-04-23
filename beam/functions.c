@@ -125,14 +125,20 @@ void generate_hash_id(uint64_t idx, uint32_t type, uint32_t sub_idx, uint8_t *ou
 void derive_key(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, const scalar_t *cof_sk, scalar_t *out_sk)
 {
   scalar_t a_sk;
+  derive_pkey(parent, parent_size, hash_id, id_size, cof_sk, &a_sk);
+
+  scalar_clear(out_sk);
+  scalar_mul(out_sk, &a_sk, cof_sk);
+}
+
+void derive_pkey(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, const scalar_t *cof_sk, scalar_t *out_sk)
+{
+  scalar_clear(out_sk);
   nonce_generator_t key;
   nonce_generator_init(&key, (const uint8_t *)"beam-Key", 9);
   nonce_generator_write(&key, parent, parent_size);
   nonce_generator_write(&key, hash_id, id_size);
-  nonce_generator_export_scalar(&key, NULL, 0, &a_sk);
-
-  scalar_clear(out_sk);
-  scalar_mul(out_sk, &a_sk, cof_sk);
+  nonce_generator_export_scalar(&key, NULL, 0, out_sk);
 }
 
 void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32)

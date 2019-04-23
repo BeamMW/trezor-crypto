@@ -82,7 +82,7 @@ void switch_commitment(const uint8_t *asset_id, secp256k1_gej* h_gen)
   }
 }
 
-void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_idv_t* kidv, int has_commitment, const secp256k1_gej* h_gen)
+void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_idv_t* kidv, uint8_t has_commitment, const secp256k1_gej* h_gen)
 {
     uint8_t hash_id[DIGEST_LENGTH];
     generate_hash_id(kidv->id.idx, kidv->id.type, kidv->id.sub_idx, hash_id);
@@ -129,14 +129,10 @@ void peer_finalize_excess(scalar_t* peer_scalar, secp256k1_gej* kG, scalar_t* k_
 void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, uint64_t val, HKdf_t* kdf, const uint8_t* asset_id)
 {
     tx_input_t* input = malloc(sizeof(tx_input_t));
+    tx_input_init(input);
 
     key_idv_t kidv;
-    //TEST<Kirill A>: Test only
-    //kidv.idx = 1;
-    //random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
-    test_set_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx), 3);
-    kidv.id.sub_idx = 0;
-    kidv.id.type = get_context()->key.Regular;
+    key_idv_init(&kidv);
     kidv.value = val;
 
     scalar_t k;
@@ -151,6 +147,88 @@ void peer_add_input(tx_inputs_vec_t* tx_inputs, scalar_t* peer_scalar, uint64_t 
     // Push TxInput to vec of inputs
     vec_push(tx_inputs, input);
 
+    scalar_add(peer_scalar, peer_scalar, &k);
+}
+
+void tx_output_create(tx_output_t* output, scalar_t* sk, HKdf_t* coin_kdf, const key_idv_t* kidv, HKdf_t* tag_kdf, uint8_t is_public)
+{
+    secp256k1_gej h_gen;
+    switch_commitment(output->asset_id, &h_gen);
+    secp256k1_gej commitment_native;
+    switch_commitment_create(sk, &commitment_native, coin_kdf, kidv, 1, &h_gen);
+    // Write results - commitment_native - to TxOutput
+    export_gej_to_point(&commitment_native, &output->tx_element.commitment);
+
+    SHA256_CTX oracle;
+    sha256_Init(&oracle);
+    sha256_write_64(&oracle, output->incubation_height);
+
+    //TODO
+    //ECC::RangeProof::CreatorParams cp;
+    //cp.m_Kidv = kidv;
+    //get_SeedKid(cp.m_Seed.V, tagKdf);
+    //tx_output_get_seed_kid(output, cp.seed, tag_kdf);
+
+    if (is_public || output->is_coinbase)
+    {
+        //TODO
+        //m_pPublic.reset(new ECC::RangeProof::Public);
+        //m_pPublic->m_Value = kidv.m_Value;
+        //m_pPublic->Create(sk, cp, oracle);
+    }
+    else
+    {
+        //TODO
+        //m_pConfidential.reset(new ECC::RangeProof::Confidential);
+        //m_pConfidential->Create(sk, cp, oracle, &sc.m_hGen);
+    }
+
+}
+
+void tx_output_get_seed_kid(const tx_output_t* output, uint8_t* seed, HKdf_t* kdf)
+{
+    SHA256_CTX hp;
+    sha256_Update(&hp, output->tx_element.commitment.x, DIGEST_LENGTH);
+    sha256_write_8(&hp, output->tx_element.commitment.y);
+    sha256_Final(&hp, seed);
+
+    scalar_t sk;
+    derive_key(kdf->generator_secret, DIGEST_LENGTH, seed, DIGEST_LENGTH, &kdf->cofactor, &sk);
+
+    uint8_t sk_data[DIGEST_LENGTH];
+    scalar_get_b32(sk_data, &sk);
+
+    SHA256_CTX hp2;
+    sha256_Update(&hp2, sk_data, DIGEST_LENGTH);
+    sha256_Final(&hp2, seed);
+}
+
+void peer_add_output(tx_outputs_vec_t* tx_outputs, scalar_t* peer_scalar, uint64_t val, HKdf_t* kdf, const uint8_t* asset_id)
+{
+    tx_output_t* output = malloc(sizeof(tx_output_t));
+    tx_output_init(output);
+
+    key_idv_t kidv;
+    key_idv_init(&kidv);
+    kidv.value = val;
+
+    const uint8_t is_empty_asset_id = memis0(asset_id, DIGEST_LENGTH);
+    if (! is_empty_asset_id)
+        memcpy(output->asset_id, asset_id, DIGEST_LENGTH);
+
+    scalar_t k;
+    //rangeproof_public_create(&k, kdf, &kidv, &kdf);
+
+    //TODO: not sure if we need this on Trezor
+    //// test recovery
+    //Key::IDV kidv2;
+    //verify_test(pOut->Recover(kdf, kidv2));
+    //verify_test(kidv == kidv2);
+
+    // Push TxOutput to vec of outputs
+    vec_push(tx_outputs, output);
+
+    scalar_negate(&k, &k);
     scalar_add(peer_scalar, peer_scalar, &k);
 }
 
@@ -310,7 +388,7 @@ void cosign_kernel_part_2(tx_kernel_t* kernel,
 
 void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
                       tx_kernels_vec_t* nested_kernels,
-                      uint64_t fee, uint32_t should_emit_custom_tag)
+                      uint64_t fee, uint8_t should_emit_custom_tag)
 {
     tx_kernel_t* kernel = malloc(sizeof(tx_kernel_t));
     kernel->kernel.fee = fee;

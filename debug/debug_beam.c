@@ -124,6 +124,12 @@ int main(void)
     DEBUG_PRINT("Hash lock msg: ", kernel_hash_message, DIGEST_LENGTH);
     VERIFY_TEST(IS_EQUAL_HEX("d729163b2cd6e4345f795d0b7341ef30cbd96d9c38bd2e6341f50519af9d7190", kernel_hash_message, DIGEST_LENGTH * 2));
 
+    cosign_kernel_part_2(&kernel,
+                         &xG,
+                         &peer_sk, &peer_nonce, 1,
+                         kernel_hash_message);
+    verify_scalar_data("CoSignKernel - pt2. Sig sk: ", "ac0cdbf0769737e7cd3e2c36bf559f948c80236e8fac0fd713df65ca4eec8f67", &kernel.kernel.signature.k);
+
     return 0;
 }
 
