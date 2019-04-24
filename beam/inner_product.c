@@ -153,7 +153,7 @@ void inner_product_calculator_condense(inner_product_calculator_t *calc)
     // further compression points (casual)
     // Currently according to benchmarks - not necessary
     break;
-  case _RANGEPROOF_CONFIDENTIAL_NCYCLES - 1: // last iteration - no need to condense points
+  case INNER_PRODUCT_N_CYCLES - 1: // last iteration - no need to condense points
   default:
     return;
   }

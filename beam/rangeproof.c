@@ -82,6 +82,7 @@ void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, cons
   if (out->value >= _RANGEPROOF_AMOUNT_MINIMUM_VALUE)
   {
     memset(&out->recovery.kid, 0, sizeof(out->recovery.kid));
+    memset(&out->recovery.checksum, 0, 32);
     assing_aligned(out->recovery.kid.idx, (uint8_t *)&cp->kidv.id.idx, sizeof(out->recovery.kid.idx));
     assing_aligned(out->recovery.kid.type, (uint8_t *)&cp->kidv.id.type, sizeof(out->recovery.kid.type));
     assing_aligned(out->recovery.kid.sub_idx, (uint8_t *)&cp->kidv.id.sub_idx, sizeof(out->recovery.kid.sub_idx));
@@ -92,4 +93,144 @@ void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, cons
     rangeproof_public_get_msg(out, hash_value, oracle);
     signature_sign(hash_value, sk, get_context()->generator.G_pts, &out->signature);
   }
+}
+
+void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar_t *sk,
+                                    const rangeproof_creator_params_t *cp, SHA256_CTX *oracle, const secp256k1_gej *h_gen)
+{
+  // single-pass - use both deterministic and random seed for key blinding.
+  // For more safety - use the current oracle state
+
+  SHA256_CTX copy_oracle;
+  memcpy(&copy_oracle, oracle, sizeof(SHA256_CTX));
+  uint8_t seed_sk[32];
+  random_buffer(seed_sk, sizeof(seed_sk));
+
+  sha256_oracle_update_sk(&copy_oracle, sk);
+  sha256_Update(&copy_oracle, seed_sk, sizeof(seed_sk));
+  sha256_write_64(&copy_oracle, cp->kidv.amount_value);
+  sha256_oracle_create(&copy_oracle, seed_sk);
+
+  rangeproof_confidential_co_sign(out, seed_sk, sk, cp, oracle, SINGLE_PASS, NULL, h_gen);
+}
+
+int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_t *seed_sk, const scalar_t *sk,
+                                     const rangeproof_creator_params_t *cp, SHA256_CTX *oracle, phase_t phase, multi_sig_t *msig_out, const secp256k1_gej *h_gen)
+{
+  nonce_generator_t nonce;
+  nonce_generator_init(&nonce, (const uint8_t *)"bulletproof", 12);
+  nonce_generator_write(&nonce, cp->seed, 32);
+
+  // A = G*alpha + vec(aL)*vec(G) + vec(aR)*vec(H)
+  scalar_t alpha, ro;
+  nonce_generator_export_scalar(&nonce, NULL, 0, &alpha);
+
+  // embed extra params into alpha
+  static_assert(sizeof(packed_key_idv_t) < 32);
+  static_assert(sizeof(rangeproof_creator_params_padded_t) == 32);
+  rangeproof_creator_params_padded_t pad;
+  memset(pad.padding, 0, sizeof(pad.padding));
+  assing_aligned(pad.v.id.idx, (uint8_t *)&cp->kidv.id.idx, sizeof(pad.v.id.idx));
+  assing_aligned(pad.v.id.type, (uint8_t *)&cp->kidv.id.type, sizeof(pad.v.id.type));
+  assing_aligned(pad.v.id.sub_idx, (uint8_t *)&cp->kidv.id.sub_idx, sizeof(pad.v.id.sub_idx));
+  assing_aligned(pad.v.value, (uint8_t *)&cp->kidv.amount_value, sizeof(pad.v.value));
+
+  int overflow;
+  scalar_set_b32(&ro, (const uint8_t *)&pad, &overflow);
+  if (scalar_import_nnz(&ro, (const uint8_t *)&pad))
+  {
+    // if overflow - the params won't be recovered properly, there may be ambiguity
+  }
+
+  scalar_add(&alpha, &alpha, &ro);
+
+  rangeproof_confidential_calc_a(&out->part1.a, &alpha, cp->kidv.amount_value);
+
+  // S = G*ro + vec(sL)*vec(G) + vec(sR)*vec(H)
+  nonce_generator_export_scalar(&nonce, NULL, 0, &ro);
+
+  {
+    multi_mac_t mm;
+    multi_mac_with_bufs_alloc(&mm, 1, INNER_PRODUCT_N_DIM * 2 + 1);
+    mm.k_prepared[mm.n_prepared] = ro;
+    mm.prepared[mm.n_prepared++] = (multi_mac_prepared_t *)get_generator_G();
+
+    scalar_t p_s[2][INNER_PRODUCT_N_DIM];
+
+    for (int j = 0; j < 2; j++)
+      for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++)
+      {
+        nonce_generator_export_scalar(&nonce, NULL, 0, &p_s[j][i]);
+
+        mm.k_prepared[mm.n_prepared] = p_s[j][i];
+        mm.prepared[mm.n_prepared++] = (multi_mac_prepared_t *)get_generator_ipp(i, j, 0);
+      }
+
+    secp256k1_gej comm;
+    multi_mac_calculate(&mm, &comm);
+    multi_mac_with_bufs_free(&mm);
+    export_gej_to_point(&comm, &out->part1.s);
+  }
+
+  rangeproof_confidential_challenge_set_t cs;
+  rangeproof_confidential_challenge_set_init(&cs, &out->part1, oracle);
+
+  //WIP
+  UNUSED(seed_sk);
+  UNUSED(phase);
+  UNUSED(msig_out);
+  UNUSED(h_gen);
+  UNUSED(sk);
+  return 1;
+}
+
+void data_cmov_as(uint32_t *pDst, const uint32_t *pSrc, int nWords, int flag)
+{
+  const uint32_t mask0 = flag + ~((uint32_t)0);
+  const uint32_t mask1 = ~mask0;
+
+  for (int n = 0; n < nWords; n++)
+    pDst[n] = (pDst[n] & mask0) | (pSrc[n] & mask1);
+}
+
+inline void gej_cmov(secp256k1_gej *dst, const secp256k1_gej *src, int flag)
+{
+  static_assert(sizeof(secp256k1_gej) % sizeof(uint32_t) == 0);
+  data_cmov_as((uint32_t *)dst, (uint32_t *)src, sizeof(secp256k1_gej) / sizeof(uint32_t), flag);
+}
+
+void rangeproof_confidential_calc_a(point_t *res, const scalar_t *alpha, uint64_t value)
+{
+  secp256k1_gej comm;
+  generator_mul_scalar(&comm, get_context()->generator.G_pts, alpha);
+
+  {
+    secp256k1_gej ge_s;
+
+    for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++)
+    {
+      uint32_t iBit = 1 & (value >> i);
+
+      // protection against side-channel attacks
+      gej_cmov(&ge_s, &get_generator_get1_minus()[i], 0 == iBit);
+      gej_cmov(&ge_s, &((multi_mac_prepared_t *)get_generator_ipp(i, 0, 0))->pt[0], 1 == iBit);
+
+      secp256k1_gej_add_var(&comm, &comm, &ge_s, NULL);
+    }
+  }
+
+  memcpy(res, &comm, sizeof(secp256k1_gej));
+}
+
+void rangeproof_confidential_challenge_set_init(rangeproof_confidential_challenge_set_t *cs, const struct Part1 *part1, SHA256_CTX *oracle)
+{
+  sha256_oracle_update_pt(oracle, &part1->a);
+  sha256_oracle_update_pt(oracle, &part1->s);
+  
+  scalar_create_nnz(oracle, &cs->y);
+  scalar_create_nnz(oracle, &cs->z);
+
+  scalar_inverse(&cs->y_inv, &cs->y);
+  memcpy(&cs->zz, &cs->z, sizeof(scalar_t));
+  scalar_mul(&cs->zz, &cs->zz, &cs->z);
 }

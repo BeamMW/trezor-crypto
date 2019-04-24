@@ -95,42 +95,18 @@ typedef struct
   } packed_key_id_t;
 #pragma pack(pop)
 
-typedef struct
-{
-  // Bulletproof scheme
+#pragma pack(push, 1)
+  typedef struct
+  {
+    packed_key_id_t id;
+    uint8_t value[8];
+  } packed_key_idv_t;
+#pragma pack(pop)
 
-  struct Part1 {
-    point_t a;
-    point_t s;
-  } part1;
-
-  // <- y,z
-
-  struct Part2 {
-    point_t t1;
-    point_t t2;
-  } part2;
-
-  // <- x
-
-  struct Part3 {
-    scalar_t tauX;
-  } part3;
-
-  scalar_t mu;
-  scalar_t tDot;
-
-#define _RANGEPROOF_CONFIDENTIAL_NCYCLES 6
-  struct InnerProduct {
-    point_t pair_LR[_RANGEPROOF_CONFIDENTIAL_NCYCLES][2];  // pairs of L,R values, per reduction iteration
-    scalar_t condensed[2];        // remaining 1-dimension vectors
-  } p_tag; // contains commitment P - m_Mu*G
-} rangeproof_confidential_t;
-
-typedef struct
-{
-  point_t commitment;
-  uint64_t maturity_height; // used in macroblocks only
+  typedef struct
+  {
+    point_t commitment;
+    uint64_t maturity_height; // used in macroblocks only
 } tx_element_t;
 
 typedef struct
@@ -171,7 +147,7 @@ typedef struct
 
   // one of the following *must* be specified
 
-  rangeproof_confidential_t* confidential_proof;
+  // rangeproof_confidential_t* confidential_proof;
   // rangeproof_public_t* public_proof;
 } tx_output_t;
 
@@ -196,6 +172,8 @@ secp256k1_gej *get_generator_J(void);
 secp256k1_gej *get_generator_H(void);
 
 secp256k1_gej *get_generator_ipp(size_t i, size_t j, size_t z);
+
+secp256k1_gej *get_generator_get1_minus(void);
 
 secp256k1_gej *get_generator_dot_ipp(void);
 
