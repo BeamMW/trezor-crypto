@@ -88,7 +88,6 @@ typedef struct
   uint32_t sub_idx;
 } key_id_t;
 
-#define _RANGEPROOF_AMOUNT_MINIMUM_VALUE 1
 typedef struct
 {
   key_id_t id;
@@ -104,28 +103,6 @@ typedef struct
 } packed_key_id_t;
 
 #pragma pack(pop)
-
-typedef struct
-{
-  uint8_t seed[32];
-  key_idv_t kidv;
-} rangeproof_creator_params_t;
-
-#pragma pack(push, 1)
-typedef struct
-{
-  packed_key_id_t kid;
-  uint8_t checksum[DIGEST_LENGTH];
-} rangeproof_public_recovery_t;
-#pragma pack(pop)
-
-typedef struct
-{
-  ecc_signature_t signature;
-  uint64_t value;
-
-  rangeproof_public_recovery_t recovery;
-} rangeproof_public_t;
 
 typedef struct
 {
@@ -206,7 +183,7 @@ typedef struct
   // one of the following *must* be specified
 
   rangeproof_confidential_t* confidential_proof;
-  rangeproof_public_t* public_proof;
+  // rangeproof_public_t* public_proof;
 } tx_output_t;
 // Define a type for vector of TxOutputs
 typedef vec_t(tx_output_t*) tx_outputs_vec_t;
@@ -230,5 +207,9 @@ secp256k1_gej *get_generator_G(void);
 secp256k1_gej *get_generator_J(void);
 
 secp256k1_gej *get_generator_H(void);
+
+secp256k1_gej *get_generator_ipp(size_t i, size_t j, size_t z);
+
+secp256k1_gej *get_generator_dot_ipp(void);
 
 #endif //_TYPES_

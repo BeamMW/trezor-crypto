@@ -6,6 +6,8 @@
 #include "../beam/rangeproof.h"
 #include "../beam/kernel.h"
 #include "../beam/misc.h"
+#include "../beam/inner_product.h"
+#include "definitions_test.h"
 
 #define VERIFY_TEST(x)                                                                                                        \
   do                                                                                                                          \
@@ -25,6 +27,14 @@
       printf(ANSI_COLOR_GREEN "Test passed!" ANSI_COLOR_RESET ", %s. Expression: %s == %s\n", msg, left_desc, right_desc); \
   } while (0)
 
+#define VERIFY_TEST(x)                                                                                                        \
+  do                                                                                                                          \
+  {                                                                                                                           \
+    if (!(x))                                                                                                                 \
+      printf(ANSI_COLOR_RED "Test failed!" ANSI_COLOR_CYAN " Line=%u" ANSI_COLOR_RESET ", Expression: %s\n", __LINE__, #x);   \
+    else                                                                                                                      \
+      printf(ANSI_COLOR_GREEN "Test passed!" ANSI_COLOR_CYAN " Line=%u" ANSI_COLOR_RESET ", Expression: %s\n", __LINE__, #x); \
+  } while (0)
 
 void printAsBytes(const char *name, const void *mem, size_t len)
 {
@@ -66,7 +76,7 @@ void verify_scalar_data(const char* msg, const char* hex_data, const scalar_t* s
     VERIFY_TEST_EQUAL(IS_EQUAL_HEX(hex_data, sk_data, DIGEST_LENGTH), msg, hex_data, "sk");
 }
 
-int main(void)
+int test_tx_kernel(void)
 {
     init_context();
 
@@ -133,11 +143,90 @@ int main(void)
     return 0;
 }
 
-int main2(void)
+void test_range_proof_public(void)
 {
-  random_reseed(time(NULL));
-  init_context();
+  // Range proof
+  const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
+  const uint8_t sk_bytes[] = {0x96, 0x6b, 0xdc, 0xea, 0x97, 0x7e, 0x01, 0x3e, 0x67, 0xfc, 0xe1, 0x41, 0xa1, 0x3e, 0xe9, 0x70, 0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab};
 
+  secp256k1_gej asset_tag_h_gen;
+  switch_commitment(asset_id, &asset_tag_h_gen);
+  uint8_t asset_first_32[32];
+  memcpy(asset_first_32, &asset_tag_h_gen, 32);
+  DEBUG_PRINT("asset_id", asset_first_32, 32);
+  VERIFY_TEST(IS_EQUAL_HEX("2febca014feb9c00a1d961037119b90126b7a00071d6ec01fc388b00a4a75202", asset_first_32, 64));
+
+  rangeproof_creator_params_t crp;
+  memset(crp.seed, 1, 32);
+  crp.kidv.value = 345000;
+  crp.kidv.id.idx = 1;
+  crp.kidv.id.type = 11;
+  crp.kidv.id.sub_idx = 111;
+
+  scalar_t sk;
+  scalar_set_b32(&sk, sk_bytes, NULL);
+  rangeproof_public_t rp;
+  SHA256_CTX oracle;
+  sha256_Init(&oracle);
+
+  memset(rp.recovery.checksum, 0, 32);
+  rangeproof_public_create(&rp, &sk, &crp, &oracle);
+  DEBUG_PRINT("checksum:", rp.recovery.checksum, 32);
+  VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
+
+  uint8_t hash_value[32];
+  secp256k1_gej pk;
+  sha256_Init(&oracle);
+  rangeproof_public_get_msg(&rp, hash_value, &oracle);
+  generator_mul_scalar(&pk, get_context()->generator.G_pts, &sk);
+  VERIFY_TEST(signature_is_valid(hash_value, &rp.signature, &pk, get_context()->generator.G_pts));
+
+  secp256k1_gej comm;
+  asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.value, &comm);
+  uint8_t comm_first_32[32];
+  memcpy(comm_first_32, &comm, 32);
+  DEBUG_PRINT("comm", comm_first_32, 32);
+  VERIFY_TEST(IS_EQUAL_HEX("d5448218e78bc41b5ce49c1d2e6571183e55ff1ce2c1821c0ff0451be370971b", comm_first_32, 64));
+}
+
+void test_inner_product(void)
+{
+  scalar_t dot;
+  scalar_t *pA = get_pa();
+  scalar_t *pB = get_pb();
+  inner_product_get_dot(&dot, pA, pB);
+
+  uint8_t dot_bytes[sizeof(scalar_t)];
+  memcpy(dot_bytes, &dot, sizeof(scalar_t));
+  DEBUG_PRINT("inner_product dot", dot_bytes, sizeof(scalar_t));
+  VERIFY_TEST(IS_EQUAL_HEX("6ff4ce5bb57f2907012b1eaf5b4b3f6ffc5a38bc0506ee25edfe621312c237de", dot_bytes, 64));
+
+  inner_product_modifier_t mod;
+  inner_product_modifier_init(&mod);
+  mod.multiplier[1] = get_pwr_mul();
+
+  secp256k1_gej comm;
+  inner_product_t sig;
+  SHA256_CTX oraclee;
+  sha256_Init(&oraclee);
+  inner_product_create(&sig, &oraclee, &comm, &dot, pA, pB, &mod);
+
+  uint8_t comm_first_32[32];
+  memcpy(comm_first_32, &comm, 32);
+  DEBUG_PRINT("comm(pAB)", comm_first_32, 32);
+  VERIFY_TEST(IS_EQUAL_HEX("7871671df832511da604b81cfb7de520b6bfd419c363cc1b41ab421b17e82d20", comm_first_32, 64));
+
+  SHA256_CTX sig_hash;
+  uint8_t sig_digest[SHA256_DIGEST_LENGTH];
+  sha256_Init(&sig_hash);
+  sha256_Update(&sig_hash, (const uint8_t *)&sig, sizeof(sig));
+  sha256_Final(&sig_hash, sig_digest);
+  DEBUG_PRINT("inner product sig digest", sig_digest, SHA256_DIGEST_LENGTH);
+  VERIFY_TEST(IS_EQUAL_HEX("c7cdf73898af6edbda95be89e5f4a05a7da20cf5bcf71b9fbc409fffacfd273f", sig_digest, 64));
+}
+
+void test_common(void)
+{
   uint8_t seed[DIGEST_LENGTH];
   phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
   //phrase_to_seed("tomato provide age upon voice fetch nest night parent pilot evil furnace", seed);
@@ -190,43 +279,24 @@ int main2(void)
   msg[0]++;
   VERIFY_TEST(!signature_is_valid(msg, &signature, &pk, get_context()->generator.G_pts)); // failed
 
-  uint8_t* owner_key = get_owner_key(secret_key, &cofactor, (uint8_t*)"qwerty", 7);
-  DEBUG_PRINT("owner_key: ", owner_key, 108);
-  char* owner_key_encoded = b64_encode(owner_key, 108);
+  uint8_t *owner_key = get_owner_key(secret_key, &cofactor, (uint8_t *)"qwerty", 7);
+  char *owner_key_encoded = b64_encode(owner_key, 108);
   printf("owner_key encoded:" ANSI_COLOR_YELLOW " %s\n" ANSI_COLOR_RESET, owner_key_encoded);
-  VERIFY_TEST(0 == strcmp("mJrVrOiyjaMFCjxRsfGahBkiVzC+ymIXDv2qJdJxR4WMBY4rCJ+vTkkcCdVXw41pays2TuZAFJZbDyvqD89dYxzjudp3oZeTIZQQI1LnPOG92oZB4WRNvts8lJ943DSMvi3o/YotxhnTQPc2", owner_key_encoded));
+  VERIFY_TEST(0 == strncmp("mJrVrOiyjaMFCjxRsfGahBkiVzC+ymIXDv2qJdJxR4WMBY4rCJ+vTkkcCdVXw41p", owner_key_encoded, 64));
   free(owner_key);
   free(owner_key_encoded);
+}
 
-  // Range proof
-  const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
-  const uint8_t sk_bytes[] = {0x96, 0x6b, 0xdc, 0xea, 0x97, 0x7e, 0x01, 0x3e, 0x67, 0xfc, 0xe1, 0x41, 0xa1, 0x3e, 0xe9, 0x70, 0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab};
+int main(void)
+{
+  random_reseed(time(NULL));
+  init_context();
 
-  secp256k1_gej asset_tag_h_gen;
-  switch_commitment(asset_id, &asset_tag_h_gen);
-  printf("\n\nAssetTag: expected: 1caeb2f, real: ");
-  printf("%x", asset_tag_h_gen.x.n[0]);
-  printf("\n");
-  
-  rangeproof_creator_params_t crp;
-  memset(crp.seed, 1, 32);
-  crp.kidv.value = 345000;
-  crp.kidv.id.idx = 1;
-  crp.kidv.id.type = 11;
-  crp.kidv.id.sub_idx = 111;
+  test_common();
+  test_inner_product();
+  test_range_proof_public();
+  test_tx_kernel();
 
-  scalar_t sk;
-  scalar_set_b32(&sk, sk_bytes, NULL);
-  rangeproof_public_t rp;
-  SHA256_CTX oracle;
-
-  memset(rp.recovery.checksum, 0, 32);
-  rangeproof_public_create(&rp, &sk, &crp, &oracle);
-  DEBUG_PRINT("checksum:", rp.recovery.checksum, 32);
-  VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
-  secp256k1_gej comm;
-  asset_tag_commit(&asset_tag_h_gen, &sk, crp.kidv.value, &comm);
-  printAsBytes("comm", &comm, sizeof(comm));
   free_context();
   malloc_stats();
 

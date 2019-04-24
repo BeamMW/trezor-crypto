@@ -71,7 +71,7 @@ void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej)
   } while (!point_import_nnz(out_gej, &pt));
 }
 
-int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point)
+int export_gej_to_point(const secp256k1_gej *native_point, point_t *out_point)
 {
   if (secp256k1_gej_is_infinity(native_point) != 0)
   {
@@ -79,8 +79,9 @@ int export_gej_to_point(secp256k1_gej *native_point, point_t *out_point)
     return 0;
   }
 
+  secp256k1_gej pt = *native_point;
   secp256k1_ge ge;
-  secp256k1_ge_set_gej(&ge, native_point);
+  secp256k1_ge_set_gej(&ge, &pt);
 
   // seems like normalization can be omitted (already done by secp256k1_ge_set_gej), but not guaranteed according to docs.
   // But this has a negligible impact on the performance
@@ -237,6 +238,7 @@ void gej_mul_scalar(const secp256k1_gej *pt, const scalar_t *sk, secp256k1_gej *
   multi_mac_t mm;
   mm.casual = &mc;
   mm.n_casual = 1;
+  mm.n_prepared = 0;
   multi_mac_calculate(&mm, res);
 }
 

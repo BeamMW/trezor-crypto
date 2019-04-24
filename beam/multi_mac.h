@@ -4,8 +4,11 @@
 #include "definitions.h"
 
 // #define MULTI_MAC_CASUAL_MAX_ODD 31 // (1 << 5) - 1
-#define MULTI_MAC_CASUAL_MAX_ODD 1
-#define MULTI_MAC_CASUAL_COUNT   2 // (MULTI_MAC_CASUAL_MAX_ODD >> 1) + 2 // we need a single even: x2
+#define MULTI_MAC_CASUAL_MAX_ODD    1
+#define MULTI_MAC_CASUAL_COUNT      2 // (MULTI_MAC_CASUAL_MAX_ODD >> 1) + 2 // we need a single even: x2
+// #define MULTI_MAC_PREPARED_MAX_ODD  0xff // 255
+#define MULTI_MAC_PREPARED_MAX_ODD  1
+#define MULTI_MAC_PREPARED_COUNT    1 // (MULTI_MAC_PREPARED_MAX_ODD >> 1) + 1
 
 typedef struct
 {
@@ -23,12 +26,25 @@ typedef struct
 
 typedef struct
 {
+  secp256k1_gej pt[MULTI_MAC_PREPARED_COUNT];
+} multi_mac_prepared_t;
+
+typedef struct
+{
   multi_mac_casual_t *casual;
   uint32_t n_casual;
 
-  // uint32_t n_prepared;
-  // _multi_mac_fast_aux_t *aux_prepared;
+  multi_mac_prepared_t **prepared;
+  scalar_t *k_prepared;
+  _multi_mac_fast_aux_t *aux_prepared;
+  uint32_t n_prepared;
 } multi_mac_t;
+
+void multi_mac_with_bufs_alloc(multi_mac_t *mm, int max_casual, int max_prepared);
+
+void multi_mac_with_bufs_free(multi_mac_t *mm);
+
+void multi_mac_reset(multi_mac_t *mm);
 
 void multi_mac_casual_init(multi_mac_casual_t *casual, const secp256k1_gej *p, const scalar_t *k);
 

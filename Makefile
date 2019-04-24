@@ -66,7 +66,8 @@ SRCS  += rc4.c
 SRCS  += nem.c
 SRCS  += segwit_addr.c cash_addr.c
 SRCS  += memzero.c
-SRCS  += beam/multi_mac.c beam/nonce_generator.c beam/definitions.c beam/definitions_lut.c beam/internal.c beam/functions.c 
+SRCS  += beam/rangeproof.c beam/oracle.c beam/inner_product.c beam/multi_mac.c beam/nonce_generator.c  beam/internal.c beam/functions.c
+SRCS  += beam/definitions.c beam/definitions_ipp.c beam/definitions_lut.c
 SRCS  += beam/lib/scalar32.c beam/lib/field_impl.c beam/lib/field_10x26_impl.c beam/lib/group_impl.c beam/lib/util.c beam/lib/vec.c
 SRCS  += beam/kernel.c beam/misc.c 
 
@@ -116,8 +117,10 @@ debug/debug_beam.o: debug/debug_beam.c
 
 debug/base64.o: debug/base64.c
 
-debug/debug_beam: debug/base64.o debug/debug_beam.o $(OBJS)
-	$(CC) -o debug/debug_beam debug/base64.o debug/debug_beam.o $(OBJS) 
+debug/definitions_test.o: debug/definitions_test.c
+
+debug/debug_beam: debug/base64.o debug/definitions_test.o debug/debug_beam.o $(OBJS)
+	$(CC) -o debug/debug_beam debug/base64.o debug/definitions_test.o debug/debug_beam.o $(OBJS)
 
 clean:
 	rm -f *.o aes/*.o chacha20poly1305/*.o ed25519-donna/*.o
