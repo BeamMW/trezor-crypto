@@ -149,13 +149,13 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
   // S = G*ro + vec(sL)*vec(G) + vec(sR)*vec(H)
   nonce_generator_export_scalar(&nonce, NULL, 0, &ro);
 
+  scalar_t p_s[2][INNER_PRODUCT_N_DIM];
+  secp256k1_gej comm;
   {
     multi_mac_t mm;
     multi_mac_with_bufs_alloc(&mm, 1, INNER_PRODUCT_N_DIM * 2 + 1);
     mm.k_prepared[mm.n_prepared] = ro;
     mm.prepared[mm.n_prepared++] = (multi_mac_prepared_t *)get_generator_G();
-
-    scalar_t p_s[2][INNER_PRODUCT_N_DIM];
 
     for (int j = 0; j < 2; j++)
       for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++)
@@ -166,21 +166,144 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
         mm.prepared[mm.n_prepared++] = (multi_mac_prepared_t *)get_generator_ipp(i, j, 0);
       }
 
-    secp256k1_gej comm;
     multi_mac_calculate(&mm, &comm);
     multi_mac_with_bufs_free(&mm);
     export_gej_to_point(&comm, &out->part1.s);
   }
 
   rangeproof_confidential_challenge_set_t cs;
-  rangeproof_confidential_challenge_set_init(&cs, &out->part1, oracle);
+  rangeproof_confidential_challenge_set_init_1(&cs, &out->part1, oracle);
 
-  //WIP
-  UNUSED(seed_sk);
-  UNUSED(phase);
-  UNUSED(msig_out);
-  UNUSED(h_gen);
-  UNUSED(sk);
+  scalar_t t0, t1, t2;
+  scalar_clear(&t0);
+  scalar_clear(&t1);
+  scalar_clear(&t2);
+  scalar_t l0, r0, rx, one, two, yPwr, zz_twoPwr;
+  scalar_set_int(&one, 1U);
+  scalar_set_int(&two, 2U);
+
+  memcpy(&yPwr, &one, sizeof(scalar_t));
+  memcpy(&zz_twoPwr, &cs.zz, sizeof(scalar_t));
+
+  for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++)
+  {
+    uint32_t bit = 1 & (cp->kidv.amount_value >> i);
+
+    scalar_negate(&l0, &cs.z);
+    if (bit)
+    {
+      scalar_add(&l0, &l0, &one);
+    }
+
+    const scalar_t *lx = &p_s[0][i];
+    memcpy(&r0, &cs.z, sizeof(scalar_t));
+    if (!bit)
+    {
+      scalar_t minus_one;
+      scalar_negate(&minus_one, &one);
+      scalar_add(&r0, &r0, &minus_one);
+    }
+
+    scalar_mul(&r0, &r0, &yPwr);
+    scalar_add(&r0, &r0, &zz_twoPwr);
+
+    memcpy(&rx, &yPwr, sizeof(scalar_t));
+    scalar_mul(&rx, &rx, &p_s[1][i]);
+
+    scalar_mul(&zz_twoPwr, &zz_twoPwr, &two);
+    scalar_mul(&yPwr, &yPwr, &cs.y);
+
+    scalar_t tmp;
+
+    scalar_mul(&tmp, &l0, &r0);
+    scalar_add(&t0, &t0, &tmp);
+
+    scalar_mul(&tmp, &l0, &rx);
+    scalar_add(&t1, &t1, &tmp);
+
+    scalar_mul(&tmp, lx, &r0);
+    scalar_add(&t1, &t1, &tmp);
+
+    scalar_mul(&tmp, lx, &rx);
+    scalar_add(&t2, &t2, &tmp);
+  }
+
+  rangeproof_confidential_multi_sig_t msig;
+  rangeproof_confidential_multi_sig_init(&msig, seed_sk);
+
+  if (FINALIZE != phase) // otherwise part2 already contains the whole aggregate
+  {
+    secp256k1_gej comm2;
+    rangeproof_confidential_multi_sig_add_info1(&msig, &comm, &comm2);
+
+    if (tag_is_custom(h_gen))
+    {
+      // since we need 2 multiplications - prepare it explicitly.
+      multi_mac_casual_t mc;
+      multi_mac_casual_init_new(&mc, h_gen);
+
+      multi_mac_t mm2;
+      multi_mac_reset(&mm2);
+      mm2.casual = &mc;
+      mm2.n_casual = 1;
+      secp256k1_gej comm3;
+      memcpy(&mc.k, &t1, sizeof(scalar_t));
+      multi_mac_calculate(&mm2, &comm3);
+      secp256k1_gej_add_var(&comm, &comm, &comm3, NULL);
+
+      memcpy(&mc.k, &t2, sizeof(scalar_t));
+      multi_mac_calculate(&mm2, &comm3);
+      secp256k1_gej_add_var(&comm, &comm, &comm3, NULL);
+    }
+    else
+    {
+      secp256k1_gej tmp;
+      generator_mul_scalar(&tmp, get_context()->generator.H_pts, &t1);
+      secp256k1_gej_add_var(&comm, &comm, &tmp, NULL);
+
+      generator_mul_scalar(&tmp, get_context()->generator.H_pts, &t2);
+      secp256k1_gej_add_var(&comm2, &comm2, &tmp, NULL);
+    }
+
+    if (SINGLE_PASS != phase)
+    {
+      secp256k1_gej p;
+
+      if (!point_import(&p, &out->part2.t1))
+        return 0;
+      secp256k1_gej_add_var(&comm, &comm, &p, NULL);
+
+      if (!point_import(&p, &out->part2.t2))
+        return 0;
+      secp256k1_gej_add_var(&comm2, &comm2, &p, NULL);
+    }
+
+    memcpy(&out->part2.t1, &comm, sizeof(secp256k1_gej));
+    memcpy(&out->part2.t2, &comm2, sizeof(secp256k1_gej));
+  }
+
+  rangeproof_confidential_challenge_set_init_2(&cs, &out->part2, oracle);
+
+  if (msig_out)
+  {
+    memcpy(&msig_out->x, &cs.x, sizeof(scalar_t));
+    memcpy(&msig_out->zz, &cs.zz, sizeof(scalar_t));
+  }
+
+  if (STEP_2 == phase)
+    return 1; // stop after T1,T2 calculated
+
+  // m_TauX = tau2*x^2 + tau1*x + sk*z^2
+  rangeproof_confidential_multi_sig_add_info2(&msig, &l0, sk, &cs);
+
+  if (SINGLE_PASS != phase)
+    scalar_add(&l0, &l0, &out->part3.tauX);
+
+  memcpy(&out->part3.tauX, &l0, sizeof(scalar_t));
+
+  // m_Mu = alpha + ro*x
+  // ...
+
   return 1;
 }
 
@@ -222,7 +345,7 @@ void rangeproof_confidential_calc_a(point_t *res, const scalar_t *alpha, uint64_
   memcpy(res, &comm, sizeof(secp256k1_gej));
 }
 
-void rangeproof_confidential_challenge_set_init(rangeproof_confidential_challenge_set_t *cs, const struct Part1 *part1, SHA256_CTX *oracle)
+void rangeproof_confidential_challenge_set_init_1(rangeproof_confidential_challenge_set_t *cs, const struct Part1 *part1, SHA256_CTX *oracle)
 {
   sha256_oracle_update_pt(oracle, &part1->a);
   sha256_oracle_update_pt(oracle, &part1->s);
@@ -233,4 +356,44 @@ void rangeproof_confidential_challenge_set_init(rangeproof_confidential_challeng
   scalar_inverse(&cs->y_inv, &cs->y);
   memcpy(&cs->zz, &cs->z, sizeof(scalar_t));
   scalar_mul(&cs->zz, &cs->zz, &cs->z);
+}
+
+void rangeproof_confidential_challenge_set_init_2(rangeproof_confidential_challenge_set_t *cs, const struct Part2 *part2, SHA256_CTX *oracle)
+{
+  sha256_oracle_update_pt(oracle, &part2->t1);
+  sha256_oracle_update_pt(oracle, &part2->t2);
+
+  scalar_create_nnz(oracle, &cs->x);
+}
+
+void rangeproof_confidential_multi_sig_init(rangeproof_confidential_multi_sig_t *msig, const uint8_t *seed_sk)
+{
+  nonce_generator_t nonce;
+  nonce_generator_init(&nonce, (const uint8_t *)"bp-key", 7);
+  nonce_generator_write(&nonce, seed_sk, 32);
+  nonce_generator_export_scalar(&nonce, NULL, 0, &msig->tau1);
+  nonce_generator_export_scalar(&nonce, NULL, 0, &msig->tau2);
+}
+
+void rangeproof_confidential_multi_sig_add_info1(rangeproof_confidential_multi_sig_t *msig, secp256k1_gej *pt_t1, secp256k1_gej *pt_t2)
+{
+  generator_mul_scalar(pt_t1, get_context()->generator.G_pts, &msig->tau1);
+  generator_mul_scalar(pt_t2, get_context()->generator.G_pts, &msig->tau2);
+}
+
+void rangeproof_confidential_multi_sig_add_info2(rangeproof_confidential_multi_sig_t *msig, scalar_t *taux, const scalar_t *sk, const rangeproof_confidential_challenge_set_t *cs)
+{
+  // taux = tau2*x^2 + tau1*x + sk*z^2
+  memcpy(taux, &msig->tau2, sizeof(scalar_t));
+  scalar_mul(taux, taux, &cs->x);
+  scalar_mul(taux, taux, &cs->x);
+
+  scalar_t t1;
+  memcpy(&t1, &msig->tau1, sizeof(scalar_t));
+  scalar_mul(&t1, &t1, &cs->x);
+  scalar_add(taux, taux, &t1);
+
+  memcpy(&t1, &cs->zz, sizeof(scalar_t));
+  scalar_mul(&t1, &t1, sk);
+  scalar_add(taux, taux, &t1);
 }

@@ -26,10 +26,15 @@ void multi_mac_with_bufs_free(multi_mac_t *mm)
   multi_mac_reset(mm);
 }
 
-void multi_mac_casual_init(multi_mac_casual_t *casual, const secp256k1_gej *p, const scalar_t *k)
+void multi_mac_casual_init_new(multi_mac_casual_t *casual, const secp256k1_gej *p)
 {
   casual->pt[1] = *p;
   casual->prepared = 1;
+}
+
+void multi_mac_casual_init(multi_mac_casual_t *casual, const secp256k1_gej *p, const scalar_t *k)
+{
+  multi_mac_casual_init_new(casual, p);
   casual->k = *k;
 }
 

@@ -46,6 +46,8 @@ void multi_mac_with_bufs_free(multi_mac_t *mm);
 
 void multi_mac_reset(multi_mac_t *mm);
 
+void multi_mac_casual_init_new(multi_mac_casual_t *casual, const secp256k1_gej *p);
+
 void multi_mac_casual_init(multi_mac_casual_t *casual, const secp256k1_gej *p, const scalar_t *k);
 
 void multi_mac_fast_aux_schedule(_multi_mac_fast_aux_t *aux, const scalar_t *k, unsigned int iBitsRemaining, unsigned int nMaxOdd, unsigned int *pTbl, unsigned int iThisEntry);

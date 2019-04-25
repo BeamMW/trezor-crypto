@@ -81,6 +81,12 @@ typedef struct
   scalar_t y_inv, zz;
 } rangeproof_confidential_challenge_set_t;
 
+typedef struct
+{
+  scalar_t tau1;
+  scalar_t tau2;
+} rangeproof_confidential_multi_sig_t;
+
 typedef enum
 {
   SINGLE_PASS, // regular, no multisig
@@ -111,6 +117,14 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
 
 void rangeproof_confidential_calc_a(point_t *res, const scalar_t *alpha, uint64_t value);
 
-void rangeproof_confidential_challenge_set_init(rangeproof_confidential_challenge_set_t *cs, const struct Part1 *part1, SHA256_CTX *oracle);
+void rangeproof_confidential_challenge_set_init_1(rangeproof_confidential_challenge_set_t *cs, const struct Part1 *part1, SHA256_CTX *oracle);
+
+void rangeproof_confidential_challenge_set_init_2(rangeproof_confidential_challenge_set_t *cs, const struct Part2 *part2, SHA256_CTX *oracle);
+
+void rangeproof_confidential_multi_sig_init(rangeproof_confidential_multi_sig_t *msig, const uint8_t *seed_sk);
+
+void rangeproof_confidential_multi_sig_add_info1(rangeproof_confidential_multi_sig_t *msig, secp256k1_gej *pt_t1, secp256k1_gej *pt_t2);
+
+void rangeproof_confidential_multi_sig_add_info2(rangeproof_confidential_multi_sig_t *msig, scalar_t *taux, const scalar_t *sk, const rangeproof_confidential_challenge_set_t *cs);
 
 #endif //_RANGEPROOF_H_
