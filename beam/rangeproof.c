@@ -1,5 +1,8 @@
 #include "rangeproof.h"
 #include "functions.h"
+#include "misc.h"
+#include "memzero.h"
+
 
 int tag_is_custom(const secp256k1_gej *h_gen)
 {
@@ -61,4 +64,23 @@ void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, cons
     rangeproof_public_get_msg(out, hash_value, oracle);
     signature_sign(hash_value, sk, get_context()->generator.G_pts, &out->signature);
   }
+}
+
+void rangeproof_creator_params_init(rangeproof_creator_params_t* crp)
+{
+    memzero(crp->seed, DIGEST_LENGTH);
+    key_idv_init(&crp->kidv);
+}
+
+void rangeproof_public_init(rangeproof_public_t* public)
+{
+    signature_init(&public->signature);
+    public->value = 0;
+    rangeproof_public_recovery_init(&public->recovery);
+}
+
+void rangeproof_public_recovery_init(rangeproof_public_recovery_t* recovery)
+{
+    memzero(recovery->checksum, DIGEST_LENGTH);
+    packed_key_id_init(&recovery->kid);
 }

@@ -98,6 +98,9 @@ int test_tx_kernel(void)
     peer_add_input(&transaction.inputs, &peer_sk, 2000, &kdf, NULL);
     verify_scalar_data("Peer sk data: ", "8b353049229348f3b04e841b7b8f19941303712b07acf9a90c0eaacd51fb3c98", &peer_sk);
 
+    peer_add_output(&transaction.outputs, &peer_sk, 100, &kdf, NULL);//REALLY NULL?!
+    verify_scalar_data("Peer sk data (after out): ", "bd20898bbe8720a3eb8504dcc8b61ffd63f0fc54d66799b0d84b880d6e9630d4", &peer_sk);
+
     uint64_t fee1 = 100;
     tx_kernel_t kernel;
     kernel_init(&kernel);
@@ -130,7 +133,7 @@ int test_tx_kernel(void)
     printf("Kernel commitment Y: %u\n", kernel.kernel.tx_element.commitment.y);
     VERIFY_TEST(IS_EQUAL_HEX("531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH * 2));
     VERIFY_TEST(kernel.kernel.tx_element.commitment.y == 1);
-    verify_scalar_data("Transaction offset: ", "8e38334c25964bf6b351871e7e921c971606742e0aaffcac0f11add054fe3f9b", &transaction.offset);
+    verify_scalar_data("Transaction offset: ", "c0238c8ec18a23a6ee8807dfcbb9230066f3ff57d96a9cb3db4e8b10719933d7", &transaction.offset);
     DEBUG_PRINT("Hash lock msg: ", kernel_hash_message, DIGEST_LENGTH);
     VERIFY_TEST(IS_EQUAL_HEX("d729163b2cd6e4345f795d0b7341ef30cbd96d9c38bd2e6341f50519af9d7190", kernel_hash_message, DIGEST_LENGTH * 2));
 
@@ -292,9 +295,9 @@ int main(void)
   random_reseed(time(NULL));
   init_context();
 
-  test_common();
-  test_inner_product();
-  test_range_proof_public();
+  //test_common();
+  //test_inner_product();
+  //test_range_proof_public();
   test_tx_kernel();
 
   free_context();

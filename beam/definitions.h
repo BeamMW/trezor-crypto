@@ -1,5 +1,5 @@
-#ifndef _TYPES_
-#define _TYPES_
+#ifndef _TYPES_H_
+#define _TYPES_H_
 
 #ifndef BEAM_DEBUG
 #include "mpconfigport.h"
@@ -101,7 +101,6 @@ typedef struct
   uint8_t type[4];
   uint8_t sub_idx[4];
 } packed_key_id_t;
-
 #pragma pack(pop)
 
 typedef struct
@@ -136,66 +135,6 @@ typedef struct
   } p_tag; // contains commitment P - m_Mu*G
 } rangeproof_confidential_t;
 
-typedef struct
-{
-  point_t commitment;
-  uint64_t maturity_height; // used in macroblocks only
-} tx_element_t;
-
-typedef struct
-{
-  ecc_signature_t signature;    // For the whole body, including nested kernels
-  uint64_t fee;                 // can be 0 (for instance for coinbase transactions)
-  uint64_t min_height;
-  uint64_t max_height;
-  int64_t asset_emission;       // in case it's non-zero - the kernel commitment is the AssetID
-
-  uint8_t hash_lock_preimage[DIGEST_LENGTH];
-  tx_element_t tx_element;
-} _tx_kernel_t;
-// Just an inner type to store nested TxKernels
-typedef vec_t(_tx_kernel_t*) _nested_kernels_vec_t;
-
-typedef struct
-{
-  _tx_kernel_t kernel;
-
-  _nested_kernels_vec_t nested_kernels;
-} tx_kernel_t;
-// Define a type for vector of TxKernels
-typedef vec_t(tx_kernel_t*) tx_kernels_vec_t;
-
-typedef struct
-{
-  tx_element_t tx_element;
-  uint64_t _id; // used internally. Not serialized/transferred
-} tx_input_t;
-// Define a type for vector of TxInputs
-typedef vec_t(tx_input_t*) tx_inputs_vec_t;
-
-typedef struct
-{
-  tx_element_t tx_element;
-  uint32_t is_coinbase; // 0 - regular output. 1 - coinbase
-  uint64_t incubation_height; // # of blocks before it's mature
-  uint8_t asset_id[DIGEST_LENGTH]; // type of ECC:Hash::Value
-
-  // one of the following *must* be specified
-
-  rangeproof_confidential_t* confidential_proof;
-  // rangeproof_public_t* public_proof;
-} tx_output_t;
-// Define a type for vector of TxOutputs
-typedef vec_t(tx_output_t*) tx_outputs_vec_t;
-
-typedef struct
-{
-  scalar_t offset;
-  tx_inputs_vec_t inputs;
-  tx_outputs_vec_t outputs;
-  tx_kernels_vec_t kernels;
-} transaction_t;
-
 secp256k1_gej *get_generator_lut_G(void);
 
 secp256k1_gej *get_generator_lut_J(void);
@@ -212,4 +151,4 @@ secp256k1_gej *get_generator_ipp(size_t i, size_t j, size_t z);
 
 secp256k1_gej *get_generator_dot_ipp(void);
 
-#endif //_TYPES_
+#endif //_TYPES_H_

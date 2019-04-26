@@ -41,4 +41,8 @@ void rangeproof_public_get_msg(rangeproof_public_t *rp, uint8_t *hash32, SHA256_
 
 void rangeproof_public_create(rangeproof_public_t *out, const scalar_t *sk, const rangeproof_creator_params_t *cp, SHA256_CTX *oracle);
 
+void rangeproof_creator_params_init(rangeproof_creator_params_t* crp);
+void rangeproof_public_init(rangeproof_public_t* public);
+void rangeproof_public_recovery_init(rangeproof_public_recovery_t* recovery);
+
 #endif //_RANGEPROOF_H_

@@ -1,3 +1,5 @@
+.PHONY: debug
+
 CC       ?= gcc
 
 OPTFLAGS ?= -O3 -g

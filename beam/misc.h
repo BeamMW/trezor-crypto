@@ -2,6 +2,8 @@
 #define __BEAM_MISC__
 
 #include "definitions.h"
+#include "kernel.h"
+#include "rangeproof.h"
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -53,6 +55,7 @@ void transaction_init(transaction_t* transaction);
 void signature_init(ecc_signature_t* signature);
 void point_init(point_t* point);
 void key_idv_init(key_idv_t* kidv);
+void packed_key_id_init(packed_key_id_t* kid);
 void tx_element_init(tx_element_t* tx_element);
 void tx_input_init(tx_input_t* input);
 void tx_output_init(tx_output_t* output);

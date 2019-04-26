@@ -40,6 +40,13 @@ void key_idv_init(key_idv_t* kidv)
     kidv->value = 0;
 }
 
+void packed_key_id_init(packed_key_id_t* kid)
+{
+    memset(kid->idx, 0, 8);
+    memset(kid->type, 0, 4);
+    memset(kid->sub_idx, 0, 4);
+}
+
 void tx_element_init(tx_element_t* tx_element)
 {
     point_init(&tx_element->commitment);
@@ -62,6 +69,9 @@ void tx_output_init(tx_output_t* output)
     memzero(output->asset_id, DIGEST_LENGTH);
     // rangeproof_public will be init later with calling rangeproof_public_create
     // same for the confidential one
+    output->confidential_proof = malloc(sizeof(rangeproof_confidential_t));
+    output->public_proof = malloc(sizeof(rangeproof_public_t));
+    rangeproof_public_init(output->public_proof);
 }
 
 void kernel_init(tx_kernel_t* kernel)

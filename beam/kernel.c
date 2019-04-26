@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "kernel.h"
 #include "internal.h"
 #include "functions.h"
 #include "../rand.h"
@@ -164,13 +165,15 @@ void tx_output_create(tx_output_t* output, scalar_t* sk, HKdf_t* coin_kdf, const
     sha256_write_64(&oracle, output->incubation_height);
 
     //TODO
-    //ECC::RangeProof::CreatorParams cp;
-    //cp.m_Kidv = kidv;
-    //get_SeedKid(cp.m_Seed.V, tagKdf);
-    //tx_output_get_seed_kid(output, cp.seed, tag_kdf);
+    rangeproof_creator_params_t crp;
+    rangeproof_creator_params_init(&crp);
+    crp.kidv = *kidv;
+    tx_output_get_seed_kid(output, crp.seed, tag_kdf);
 
     if (is_public || output->is_coinbase)
     {
+        output->public_proof->value = kidv->value;
+        rangeproof_public_create(output->public_proof, sk, &crp, &oracle);
         //TODO
         //m_pPublic.reset(new ECC::RangeProof::Public);
         //m_pPublic->m_Value = kidv.m_Value;
@@ -212,12 +215,13 @@ void peer_add_output(tx_outputs_vec_t* tx_outputs, scalar_t* peer_scalar, uint64
     key_idv_init(&kidv);
     kidv.value = val;
 
-    const uint8_t is_empty_asset_id = memis0(asset_id, DIGEST_LENGTH);
+    const uint8_t is_empty_asset_id = (asset_id == NULL) || memis0(asset_id, DIGEST_LENGTH);
     if (! is_empty_asset_id)
         memcpy(output->asset_id, asset_id, DIGEST_LENGTH);
 
     scalar_t k;
-    //rangeproof_public_create(&k, kdf, &kidv, &kdf);
+    const int is_public = 1;
+    tx_output_create(output, &k, kdf, &kidv, kdf, is_public);
 
     //TODO: not sure if we need this on Trezor
     //// test recovery
