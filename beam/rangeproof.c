@@ -104,7 +104,9 @@ void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar
   SHA256_CTX copy_oracle;
   memcpy(&copy_oracle, oracle, sizeof(SHA256_CTX));
   uint8_t seed_sk[32];
-  random_buffer(seed_sk, sizeof(seed_sk));
+  // TODO: DEBUG
+  memset(seed_sk, 1, 32);
+  // random_buffer(seed_sk, sizeof(seed_sk));
 
   sha256_oracle_update_sk(&copy_oracle, sk);
   sha256_Update(&copy_oracle, seed_sk, sizeof(seed_sk));
@@ -302,7 +304,68 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
   memcpy(&out->part3.tauX, &l0, sizeof(scalar_t));
 
   // m_Mu = alpha + ro*x
-  // ...
+  memcpy(&l0, &ro, sizeof(scalar_t));
+  scalar_mul(&l0, &l0, &cs.x);
+  scalar_add(&l0, &l0, &alpha);
+  memcpy(&out->mu, &l0, sizeof(scalar_t));
+
+  // m_tDot
+  memcpy(&l0, &t0, sizeof(scalar_t));
+
+  memcpy(&r0, &t1, sizeof(scalar_t));
+  scalar_mul(&r0, &r0, &cs.x);
+  scalar_add(&l0, &l0, &r0);
+
+  memcpy(&r0, &t2, sizeof(scalar_t));
+  scalar_mul(&r0, &r0, &cs.x);
+  scalar_mul(&r0, &r0, &cs.x);
+  scalar_add(&l0, &l0, &r0);
+
+  memcpy(&out->tDot, &l0, sizeof(scalar_t));
+
+  // construct vectors l,r, use buffers pS
+  // P - m_Mu*G
+  memcpy(&yPwr, &one, sizeof(scalar_t));
+  memcpy(&zz_twoPwr, &cs.zz, sizeof(scalar_t));
+
+  for (uint32_t i = 0; i < INNER_PRODUCT_N_DIM; i++)
+  {
+    uint32_t bit = 1 & (cp->kidv.amount_value >> i);
+
+    scalar_mul(&p_s[0][i], &p_s[0][i], &cs.x);
+
+    scalar_t minus_cs_z;
+    scalar_negate(&minus_cs_z, &cs.z);
+    scalar_add(&p_s[0][i], &p_s[0][i], &minus_cs_z);
+
+    if (bit)
+      scalar_add(&p_s[0][i], &p_s[0][i], &one);
+
+    scalar_mul(&p_s[1][i], &p_s[1][i], &cs.x);
+    scalar_mul(&p_s[1][i], &p_s[1][i], &yPwr);
+
+    memcpy(&r0, &cs.z, sizeof(scalar_t));
+    if (!bit)
+    {
+      scalar_t minus_one;
+      scalar_negate(&minus_one, &one);
+      scalar_add(&r0, &r0, &minus_one);
+    }
+
+    scalar_mul(&r0, &r0, &yPwr);
+    scalar_add(&r0, &r0, &zz_twoPwr);
+
+    scalar_add(&p_s[1][i], &p_s[1][i], &r0);
+
+    scalar_mul(&zz_twoPwr, &zz_twoPwr, &two);
+    scalar_mul(&yPwr, &yPwr, &cs.y);
+  }
+
+  inner_product_modifier_t mod;
+  inner_product_modifier_init(&mod);
+  mod.multiplier[1] = &cs.y_inv;
+
+  inner_product_create(&out->p_tag, oracle, NULL, &l0, p_s[0], p_s[1], &mod);
 
   return 1;
 }

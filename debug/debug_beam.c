@@ -92,6 +92,10 @@ void test_range_proof_confedential(void)
   sha256_Init(&oracle);
 
   rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &asset_tag_h_gen);
+
+  uint8_t rp_mu_bytes[32];
+  scalar_get_b32(rp_mu_bytes, &rp.mu);
+  DEBUG_PRINT("rp_mu_bytes", rp_mu_bytes, 32);
 }
 
 void test_range_proof_public(void)
