@@ -104,9 +104,12 @@ void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar
   SHA256_CTX copy_oracle;
   memcpy(&copy_oracle, oracle, sizeof(SHA256_CTX));
   uint8_t seed_sk[32];
-  // TODO: DEBUG
-  memset(seed_sk, 1, 32);
-  // random_buffer(seed_sk, sizeof(seed_sk));
+
+  #ifdef BEAM_DEBUG
+    memset(seed_sk, 1, 32);
+  #else
+    random_buffer(seed_sk, sizeof(seed_sk));
+  #endif
 
   sha256_oracle_update_sk(&copy_oracle, sk);
   sha256_Update(&copy_oracle, seed_sk, sizeof(seed_sk));
