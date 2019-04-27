@@ -255,7 +255,7 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
 
       memcpy(&mc.k, &t2, sizeof(scalar_t));
       multi_mac_calculate(&mm2, &comm3);
-      secp256k1_gej_add_var(&comm, &comm, &comm3, NULL);
+      secp256k1_gej_add_var(&comm2, &comm2, &comm3, NULL);
     }
     else
     {
@@ -280,8 +280,8 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
       secp256k1_gej_add_var(&comm2, &comm2, &p, NULL);
     }
 
-    memcpy(&out->part2.t1, &comm, sizeof(secp256k1_gej));
-    memcpy(&out->part2.t2, &comm2, sizeof(secp256k1_gej));
+    export_gej_to_point(&comm, &out->part2.t1);
+    export_gej_to_point(&comm2, &out->part2.t2);
   }
 
   rangeproof_confidential_challenge_set_init_2(&cs, &out->part2, oracle);
@@ -405,7 +405,7 @@ void rangeproof_confidential_calc_a(point_t *res, const scalar_t *alpha, uint64_
     }
   }
 
-  memcpy(res, &comm, sizeof(secp256k1_gej));
+  export_gej_to_point(&comm, res);
 }
 
 void rangeproof_confidential_challenge_set_init_1(rangeproof_confidential_challenge_set_t *cs, const struct Part1 *part1, SHA256_CTX *oracle)

@@ -80,7 +80,7 @@ void test_range_proof_confedential(void)
 
   rangeproof_creator_params_t crp;
   memset(crp.seed, 1, 32);
-  crp.kidv.amount_value = 345000;
+  crp.kidv.amount_value = 23110;
   crp.kidv.id.idx = 1;
   crp.kidv.id.type = 11;
   crp.kidv.id.sub_idx = 111;
@@ -93,9 +93,13 @@ void test_range_proof_confedential(void)
 
   rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &asset_tag_h_gen);
 
-  uint8_t rp_mu_bytes[32];
-  scalar_get_b32(rp_mu_bytes, &rp.mu);
-  DEBUG_PRINT("rp_mu_bytes", rp_mu_bytes, 32);
+  SHA256_CTX rp_hash;
+  uint8_t rp_digest[SHA256_DIGEST_LENGTH];
+  sha256_Init(&rp_hash);
+  sha256_Update(&rp_hash, (const uint8_t *)&rp, sizeof(rp));
+  sha256_Final(&rp_hash, rp_digest);
+  DEBUG_PRINT("rangeproof confidential digest", rp_digest, SHA256_DIGEST_LENGTH);
+  VERIFY_TEST(IS_EQUAL_HEX("95d3d13d5c056f61461e57e13173cbfb82e2c24410d5ae72482537052c7db928", rp_digest, 64));
 }
 
 void test_range_proof_public(void)
