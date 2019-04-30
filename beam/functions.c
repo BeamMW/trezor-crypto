@@ -166,7 +166,8 @@ void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_ge
   nonce_generator_init(&secret, (const uint8_t *)"beam-Schnorr", 13);
   nonce_generator_write(&secret, bytes, 32);
 
-  random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
+  //random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
+  test_set_buffer(bytes, DIGEST_LENGTH, 32);
   nonce_generator_write(&secret, bytes, 32);
 
   scalar_t multisig_nonce;

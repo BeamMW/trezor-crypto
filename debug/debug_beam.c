@@ -101,8 +101,18 @@ int test_tx_kernel(void)
     peer_add_output(&transaction.outputs, &peer_sk, 100, &kdf, NULL);//REALLY NULL?!
     verify_scalar_data("Peer sk data (after out): ", "bd20898bbe8720a3eb8504dcc8b61ffd63f0fc54d66799b0d84b880d6e9630d4", &peer_sk);
 
-    DEBUG_PRINT("checksum:", transaction.outputs.data[0]->public_proof->recovery.checksum, 32);
-    //VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
+    DEBUG_PRINT("RP pub checksum:", transaction.outputs.data[0]->public_proof->recovery.checksum, 32);
+    VERIFY_TEST(IS_EQUAL_HEX("654a4cac95b6654ee9c99c6a8a32236c8d06c1552c76b83f09c2f055325b2312",
+                             transaction.outputs.data[0]->public_proof->recovery.checksum, 64));
+
+    {
+        SHA256_CTX rp_hash;
+        uint8_t rp_digest[SHA256_DIGEST_LENGTH];
+        sha256_Init(&rp_hash);
+        sha256_Update(&rp_hash, (const uint8_t *)transaction.outputs.data[0]->confidential_proof, sizeof(rangeproof_confidential_t));
+        sha256_Final(&rp_hash, rp_digest);
+        DEBUG_PRINT("rangeproof confidential digest", rp_digest, SHA256_DIGEST_LENGTH);
+    }
 
     uint64_t fee1 = 100;
     tx_kernel_t kernel;
@@ -149,7 +159,7 @@ int test_tx_kernel(void)
     return 0;
 }
 
-void test_range_proof_confedential(void)
+void test_range_proof_confidential(void)
 {
   const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
   const uint8_t sk_bytes[] = {0x96, 0x6b, 0xdc, 0xea, 0x97, 0x7e, 0x01, 0x3e, 0x67, 0xfc, 0xe1, 0x41, 0xa1, 0x3e, 0xe9, 0x70, 0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab};
@@ -336,7 +346,7 @@ int main(void)
   //test_common();
   //test_inner_product();
   test_range_proof_public();
-  //test_range_proof_confedential();
+  test_range_proof_confidential();
   test_tx_kernel();
 
   free_context();

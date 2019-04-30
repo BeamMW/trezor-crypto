@@ -174,13 +174,10 @@ void tx_output_create(tx_output_t* output, scalar_t* sk, HKdf_t* coin_kdf, const
     {
         output->public_proof->value = kidv->value;
         rangeproof_public_create(output->public_proof, sk, &crp, &oracle);
-        //TODO
-        //m_pPublic.reset(new ECC::RangeProof::Public);
-        //m_pPublic->m_Value = kidv.m_Value;
-        //m_pPublic->Create(sk, cp, oracle);
     }
     else
     {
+        rangeproof_confidential_create(output->confidential_proof, sk, &crp, &oracle, &h_gen);
         //TODO
         //m_pConfidential.reset(new ECC::RangeProof::Confidential);
         //m_pConfidential->Create(sk, cp, oracle, &sc.m_hGen);
@@ -191,6 +188,7 @@ void tx_output_create(tx_output_t* output, scalar_t* sk, HKdf_t* coin_kdf, const
 void tx_output_get_seed_kid(const tx_output_t* output, uint8_t* seed, HKdf_t* kdf)
 {
     SHA256_CTX hp;
+    sha256_Init(&hp);
     sha256_Update(&hp, output->tx_element.commitment.x, DIGEST_LENGTH);
     sha256_write_8(&hp, output->tx_element.commitment.y);
     sha256_Final(&hp, seed);
@@ -202,6 +200,7 @@ void tx_output_get_seed_kid(const tx_output_t* output, uint8_t* seed, HKdf_t* kd
     scalar_get_b32(sk_data, &sk);
 
     SHA256_CTX hp2;
+    sha256_Init(&hp2);
     sha256_Update(&hp2, sk_data, DIGEST_LENGTH);
     sha256_Final(&hp2, seed);
 }
