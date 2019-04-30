@@ -1,3 +1,6 @@
+#ifndef _INNER_PRODUCT_H_
+#define _INNER_PRODUCT_H_
+
 #include "definitions.h"
 #include "internal.h"
 #include "multi_mac.h"
@@ -82,3 +85,5 @@ void inner_product_calculator_condense(inner_product_calculator_t *calc);
 
 void inner_product_create(inner_product_t *in, SHA256_CTX *oracle, secp256k1_gej *ab, const scalar_t *dot_ab,
                           const scalar_t *a, const scalar_t *b, inner_product_modifier_t *mod);
+
+#endif //_INNER_PRODUCT_H_

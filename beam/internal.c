@@ -57,6 +57,15 @@ int point_import_nnz(secp256k1_gej *gej, const point_t *point)
   return 1;
 }
 
+int point_import(secp256k1_gej *gej, const point_t *point)
+{
+  if (point_import_nnz(gej, point))
+    return 1;
+
+  secp256k1_gej_set_infinity(gej);
+  return memis0(point, sizeof(point_t));
+}
+
 void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej)
 {
   point_t pt;

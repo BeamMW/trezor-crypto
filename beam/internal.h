@@ -37,6 +37,8 @@ void scalar_create_nnz(SHA256_CTX *orcale, scalar_t *out_scalar);
 
 int point_import_nnz(secp256k1_gej *gej, const point_t *point);
 
+int point_import(secp256k1_gej *gej, const point_t *point);
+
 void point_create_nnz(SHA256_CTX *oracle, secp256k1_gej *out_gej);
 
 int export_gej_to_point(const secp256k1_gej *native_point, point_t *out_point);

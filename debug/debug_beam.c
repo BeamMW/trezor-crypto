@@ -101,6 +101,9 @@ int test_tx_kernel(void)
     peer_add_output(&transaction.outputs, &peer_sk, 100, &kdf, NULL);//REALLY NULL?!
     verify_scalar_data("Peer sk data (after out): ", "bd20898bbe8720a3eb8504dcc8b61ffd63f0fc54d66799b0d84b880d6e9630d4", &peer_sk);
 
+    DEBUG_PRINT("checksum:", transaction.outputs.data[0]->public_proof->recovery.checksum, 32);
+    //VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
+
     uint64_t fee1 = 100;
     tx_kernel_t kernel;
     kernel_init(&kernel);
@@ -146,6 +149,42 @@ int test_tx_kernel(void)
     return 0;
 }
 
+void test_range_proof_confedential(void)
+{
+  const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
+  const uint8_t sk_bytes[] = {0x96, 0x6b, 0xdc, 0xea, 0x97, 0x7e, 0x01, 0x3e, 0x67, 0xfc, 0xe1, 0x41, 0xa1, 0x3e, 0xe9, 0x70, 0x87, 0xdc, 0x3d, 0x21, 0x41, 0x74, 0x82, 0x0e, 0x11, 0x54, 0xb4, 0x9b, 0xc6, 0xcd, 0xb2, 0xab};
+
+  secp256k1_gej asset_tag_h_gen;
+  switch_commitment(asset_id, &asset_tag_h_gen);
+  uint8_t asset_first_32[32];
+  memcpy(asset_first_32, &asset_tag_h_gen, 32);
+  DEBUG_PRINT("asset_id", asset_first_32, 32);
+  VERIFY_TEST(IS_EQUAL_HEX("2febca014feb9c00a1d961037119b90126b7a00071d6ec01fc388b00a4a75202", asset_first_32, 64));
+
+  rangeproof_creator_params_t crp;
+  memset(crp.seed, 1, 32);
+  crp.kidv.value = 23110;
+  crp.kidv.id.idx = 1;
+  crp.kidv.id.type = 11;
+  crp.kidv.id.sub_idx = 111;
+
+  scalar_t sk;
+  scalar_set_b32(&sk, sk_bytes, NULL);
+  rangeproof_confidential_t rp;
+  SHA256_CTX oracle;
+  sha256_Init(&oracle);
+
+  rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &asset_tag_h_gen);
+
+  SHA256_CTX rp_hash;
+  uint8_t rp_digest[SHA256_DIGEST_LENGTH];
+  sha256_Init(&rp_hash);
+  sha256_Update(&rp_hash, (const uint8_t *)&rp, sizeof(rp));
+  sha256_Final(&rp_hash, rp_digest);
+  DEBUG_PRINT("rangeproof confidential digest", rp_digest, SHA256_DIGEST_LENGTH);
+  VERIFY_TEST(IS_EQUAL_HEX("95d3d13d5c056f61461e57e13173cbfb82e2c24410d5ae72482537052c7db928", rp_digest, 64));
+}
+
 void test_range_proof_public(void)
 {
   // Range proof
@@ -172,7 +211,6 @@ void test_range_proof_public(void)
   SHA256_CTX oracle;
   sha256_Init(&oracle);
 
-  memset(rp.recovery.checksum, 0, 32);
   rangeproof_public_create(&rp, &sk, &crp, &oracle);
   DEBUG_PRINT("checksum:", rp.recovery.checksum, 32);
   VERIFY_TEST(IS_EQUAL_HEX("fb4c45f75b6bc159d0d17afd1700896c33eb3fb8b95d6c6a917dd34f2766e47d", rp.recovery.checksum, 64));
@@ -297,7 +335,8 @@ int main(void)
 
   //test_common();
   //test_inner_product();
-  //test_range_proof_public();
+  test_range_proof_public();
+  //test_range_proof_confedential();
   test_tx_kernel();
 
   free_context();
