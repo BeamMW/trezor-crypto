@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "misc.h"
 
 context_t CONTEXT;
 
@@ -125,13 +126,13 @@ void generate_hash_id(uint64_t idx, uint32_t type, uint32_t sub_idx, uint8_t *ou
 void derive_key(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, const scalar_t *cof_sk, scalar_t *out_sk)
 {
   scalar_t a_sk;
-  derive_pkey(parent, parent_size, hash_id, id_size, cof_sk, &a_sk);
+  derive_pkey(parent, parent_size, hash_id, id_size, &a_sk);
 
   scalar_clear(out_sk);
   scalar_mul(out_sk, &a_sk, cof_sk);
 }
 
-void derive_pkey(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, const scalar_t *cof_sk, scalar_t *out_sk)
+void derive_pkey(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, scalar_t *out_sk)
 {
   scalar_clear(out_sk);
   nonce_generator_t key;
@@ -166,8 +167,11 @@ void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_ge
   nonce_generator_init(&secret, (const uint8_t *)"beam-Schnorr", 13);
   nonce_generator_write(&secret, bytes, 32);
 
-  //random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
+#ifdef BEAM_DEBUG
   test_set_buffer(bytes, DIGEST_LENGTH, 32);
+#else
+  random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
+#endif
   nonce_generator_write(&secret, bytes, 32);
 
   scalar_t multisig_nonce;

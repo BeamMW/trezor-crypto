@@ -18,6 +18,7 @@ void seed_to_kdf(const uint8_t *seed, size_t n, uint8_t *out_gen32, scalar_t *ou
 void generate_hash_id(uint64_t idx, uint32_t type, uint32_t sub_idx, uint8_t *out32);
 
 void derive_key(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, const scalar_t *cof_sk, scalar_t *out_sk);
+void derive_pkey(const uint8_t *parent, uint8_t parent_size, const uint8_t *hash_id, uint8_t id_size, scalar_t *out_sk);
 
 void sk_to_pk(scalar_t *sk, const secp256k1_gej *generator_pts, uint8_t *out32);
 

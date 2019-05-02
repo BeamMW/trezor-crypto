@@ -343,8 +343,8 @@ int main(void)
   random_reseed(time(NULL));
   init_context();
 
-  //test_common();
-  //test_inner_product();
+  test_common();
+  test_inner_product();
   test_range_proof_public();
   test_range_proof_confidential();
   test_tx_kernel();
