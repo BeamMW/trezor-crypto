@@ -286,7 +286,9 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     if (excess)
         secp256k1_gej_set_infinity(&point_excess_nested);
 
+    //TODO<Kirill A>
     const tx_kernel_t* zero_kernel = NULL;
+    UNUSED(zero_kernel);
     for (size_t i = 0; i < (size_t)kernel->nested_kernels.length; ++i)
     {
         const uint8_t should_break = 0;
@@ -445,10 +447,14 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
     //CoSignKernel(*pKrn, hvLockImage);
 
     //Point::Native exc;
+    //TODO<Kirill A>
     secp256k1_gej exc;
+    UNUSED(exc);
     // AmountBig::Type is 128 bits = 16 bytes
     //beam::AmountBig::Type fee2;
+    //TODO<Kirill A>
     uint8_t fee2[16];
+    UNUSED(fee2);
     //verify_test(!pKrn->IsValid(fee2, exc)); // should not pass validation unless correct hash preimage is specified
 
     //// finish HL: add hash preimage
