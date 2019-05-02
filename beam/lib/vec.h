@@ -41,8 +41,8 @@
 
 
 #define vec_push(v, val)\
-  ( vec_expand_(vec_unpack_(v)) ? -1 :\
-    ((v)->data[(v)->length++] = (val), 0), 0 )
+  ( vec_expand_(vec_unpack_(v)) ? 0 :\
+    ((v)->data[(v)->length++] = (val), 0))
 
 
 #define vec_pop(v)\
