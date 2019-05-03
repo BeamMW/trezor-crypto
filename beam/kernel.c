@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include "kernel.h"
+#include <string.h>
 #include "internal.h"
 #include "functions.h"
 #include "../rand.h"
@@ -219,7 +218,7 @@ void peer_add_output(tx_outputs_vec_t* tx_outputs, scalar_t* peer_scalar, uint64
         memcpy(output->asset_id, asset_id, DIGEST_LENGTH);
 
     scalar_t k;
-    const int is_public = 1;
+    const int is_public = 0;
     tx_output_create(output, &k, kdf, &kidv, kdf, is_public);
 
     //TODO: not sure if we need this on Trezor
