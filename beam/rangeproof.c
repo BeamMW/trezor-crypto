@@ -169,7 +169,6 @@ int rangeproof_confidential_co_sign(rangeproof_confidential_t *out, const uint8_
 
   rangeproof_confidential_challenge_set_t cs;
   rangeproof_confidential_challenge_set_init_1(&cs, &out->part1, oracle);
-
   scalar_t t0, t1, t2;
   scalar_clear(&t0);
   scalar_clear(&t1);
@@ -373,7 +372,7 @@ void data_cmov_as(uint32_t *pDst, const uint32_t *pSrc, int nWords, int flag)
     pDst[n] = (pDst[n] & mask0) | (pSrc[n] & mask1);
 }
 
-inline void gej_cmov(secp256k1_gej *dst, const secp256k1_gej *src, int flag)
+void gej_cmov(secp256k1_gej *dst, const secp256k1_gej *src, int flag)
 {
   static_assert(sizeof(secp256k1_gej) % sizeof(uint32_t) == 0);
   data_cmov_as((uint32_t *)dst, (uint32_t *)src, sizeof(secp256k1_gej) / sizeof(uint32_t), flag);
