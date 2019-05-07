@@ -228,3 +228,30 @@ uint8_t* get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, co
   memcpy(p, &packed, sizeof(HKdf_pub_packed_t));
   return export_encrypted(p, sizeof(HKdf_pub_packed_t), 'P', secret, secret_size, (const uint8_t*)"0", 1);
 }
+
+void create_master_nonce(uint8_t *master)
+{
+  scalar_t master_nonce;
+  nonce_generator_t nonce;
+  uint8_t bytes[32];
+  random_buffer(bytes, sizeof(bytes));
+
+  nonce_generator_init(&nonce, (const uint8_t *)"beam-master-nonce", 18);
+  nonce_generator_write(&nonce, bytes, sizeof(bytes));
+  nonce_generator_export_scalar(&nonce, NULL, 0, &master_nonce);
+
+  scalar_get_b32(master, &master_nonce);
+}
+
+void create_derived_nonce(uint8_t *master, uint8_t *derived, uint8_t *derived_image)
+{
+  scalar_t derived_nonce;
+  nonce_generator_t nonce;
+
+  nonce_generator_init(&nonce, (const uint8_t *)"beam-derived-nonce", 19);
+  nonce_generator_write(&nonce, master, 32);
+  nonce_generator_export_scalar(&nonce, NULL, 0, &derived_nonce);
+
+  sk_to_pk(&derived_nonce, get_context()->generator.G_pts, derived_image);
+  scalar_get_b32(derived, &derived_nonce);
+}

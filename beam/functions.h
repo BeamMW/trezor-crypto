@@ -30,4 +30,8 @@ void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, 
 
 uint8_t *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size);
 
+void create_master_nonce(uint8_t *master);
+
+void create_derived_nonce(uint8_t *master, uint8_t *derived, uint8_t *derived_image);
+
 #endif //_FUNCTIONS_
