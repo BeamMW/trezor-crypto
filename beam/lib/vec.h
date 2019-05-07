@@ -8,6 +8,10 @@
 #ifndef VEC_H
 #define VEC_H
 
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 

@@ -6,6 +6,7 @@
 #endif
 
 int get_beam_hello(void);
+int test_tx_kernel(void);
 
 // __TREZOR_CRYPTO_BEAM_H__
 #endif

@@ -78,8 +78,6 @@ void verify_scalar_data(const char* msg, const char* hex_data, const scalar_t* s
 
 int test_tx_kernel(void)
 {
-    init_context();
-
     tx_inputs_vec_t inputs;
     vec_init(&inputs);
 

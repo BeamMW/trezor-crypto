@@ -23,7 +23,9 @@
 #define _FOURCC_FROM(name) _FOURCC_CONST(_ARRAY_ELEMENT_SAFE(#name, 0), _ARRAY_ELEMENT_SAFE(#name, 1), _ARRAY_ELEMENT_SAFE(#name, 2), _ARRAY_ELEMENT_SAFE(#name, 3))
 
 #define static_assert(condition)((void)sizeof(char[1 - 2 * !(condition)]))
+#ifndef UNUSED
 #define UNUSED(x) (void)(x)
+#endif
 
 typedef struct
 {

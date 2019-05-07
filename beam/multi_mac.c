@@ -76,7 +76,7 @@ void multi_mac_calculate(multi_mac_t *mm, secp256k1_gej *res)
 
   secp256k1_gej_set_infinity(res);
 
-  uint32_t pTblCasual[nBits];
+  unsigned int pTblCasual[nBits];
   unsigned int pTblPrepared[nBits];
 
   memset(pTblCasual, 0, sizeof(pTblCasual));
