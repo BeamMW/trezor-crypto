@@ -260,7 +260,7 @@ void create_master_nonce(uint8_t *master)
   scalar_get_b32(master, &master_nonce);
 }
 
-void create_derived_nonce(uint8_t *master, uint8_t *derived, uint8_t *derived_image)
+void create_derived_nonce(const uint8_t *master, uint8_t *derived, uint8_t *derived_image)
 {
   scalar_t derived_nonce;
   nonce_generator_t nonce;
