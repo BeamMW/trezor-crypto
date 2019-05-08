@@ -5,31 +5,6 @@
 #include "../rand.h"
 #include "misc.h"
 
-//void free_tx_kernels_vec(tx_kernels_vec_t* kernels)
-//{
-//    int i = 0;
-//    tx_kernel_t** kernel = NULL;
-//    vec_foreach_ptr(kernels, kernel, i) {
-//        // Get inner pointer and free it
-//        free(*kernel);
-//    }
-//    vec_deinit(kernels);
-//}
-void ecc_tag_add_value(const secp256k1_gej* h_gen, uint64_t value, secp256k1_gej* out)
-{
-    // gej_is_infinity == 0 means thath h_gen is zero
-    int is_custom_h_gen = (h_gen != NULL) && (secp256k1_gej_is_infinity(h_gen) == 0);
-    scalar_t value_scalar;
-    scalar_set_u64(&value_scalar, value);
-    secp256k1_gej mul_result;
-
-    if (is_custom_h_gen)
-        gej_mul_scalar(h_gen, &value_scalar, &mul_result);
-    else
-        generator_mul_scalar(&mul_result, get_context()->generator.H_pts, &value_scalar);
-
-    secp256k1_gej_add_var(out, out, &mul_result, NULL);
-}
 
 // sk0_J is a result of multiplication of derived key and generator J
 void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_gej* sk0_j, scalar_t* scalar_out)
@@ -82,6 +57,34 @@ void switch_commitment(const uint8_t *asset_id, secp256k1_gej* h_gen)
   }
 }
 
+void create_common_kidv_image(const key_idv_t* kidv, HKdf_t* kdf, secp256k1_gej* out_commitment)
+{
+    uint8_t hash_id[DIGEST_LENGTH];
+    generate_hash_id(kidv->id.idx, kidv->id.type, kidv->id.sub_idx, hash_id);
+
+    scalar_t sk;
+    derive_key(kdf->generator_secret, DIGEST_LENGTH, hash_id, DIGEST_LENGTH, &kdf->cofactor, &sk);
+
+    // Multiply key by generator G
+    generator_mul_scalar(out_commitment, get_context()->generator.G_pts, &sk);
+}
+
+void create_kidv_image(const key_idv_t* kidv, secp256k1_gej* out_commitment, uint8_t create_coin_key)
+{
+    HKdf_t* kdf = get_HKdf(0);
+    if (create_coin_key)
+    {
+        scalar_t sk;
+        // As we would have no asset id, we should have infinitiy (or NULL) h_gen
+        switch_commitment_create(&sk, out_commitment, kdf, kidv, 1, NULL);
+    }
+    else
+    {
+        create_common_kidv_image(kidv, kdf, out_commitment);
+    }
+}
+
+
 void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_idv_t* kidv, uint8_t has_commitment, const secp256k1_gej* h_gen)
 {
     uint8_t hash_id[DIGEST_LENGTH];
@@ -91,7 +94,7 @@ void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* k
 
     // Multiply key by generator G
     generator_mul_scalar(commitment, get_context()->generator.G_pts, sk);
-    ecc_tag_add_value(h_gen, kidv->value, commitment);
+    tag_add_value(h_gen, kidv->value, commitment);
 
     // Multiply key by generator J
     secp256k1_gej key_j_mul_result;

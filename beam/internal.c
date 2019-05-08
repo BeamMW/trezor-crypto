@@ -277,7 +277,7 @@ void generate_HKdfPub(const uint8_t *secret_key, const scalar_t *cofactor, const
   generator_mul_scalar(&pkG, G_pts, cofactor);
   generator_mul_scalar(&pkJ, J_pts, cofactor);
 
-  memcpy(packed->secret, secret_key, 32);
+  memcpy(packed->secret, secret_key, DIGEST_LENGTH);
   export_gej_to_point(&pkG, &packed->pkG);
   export_gej_to_point(&pkJ, &packed->pkJ);
 }
@@ -287,11 +287,11 @@ void xcrypt(const uint8_t *secret_digest, uint8_t *data, size_t mac_value_size, 
   uint8_t hvIV[32];
   SHA256_CTX x;
   sha256_Init(&x);
-  sha256_Update(&x, secret_digest, 32);
+  sha256_Update(&x, secret_digest, DIGEST_LENGTH);
   sha256_Final(&x, hvIV);
 
   HMAC_SHA256_CTX y;
-  hmac_sha256_Init(&y, secret_digest, 32);
+  hmac_sha256_Init(&y, secret_digest, DIGEST_LENGTH);
   hmac_sha256_Update(&y, data + mac_value_size, data_size);
   uint8_t cbuf[16];
   memcpy(cbuf, hvIV + 16, 16);

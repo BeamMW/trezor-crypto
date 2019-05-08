@@ -200,7 +200,8 @@ int signature_is_valid(const uint8_t *msg32, const ecc_signature_t* signature, c
 void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, uint32_t index, uint8_t *out32_child_secret, scalar_t *out_child_cof)
 {
   if (!index)
-  { // by convention 0 is not a child
+  {
+    // by convention 0 is not a child
     memcpy(out32_child_secret, parent_secret_32, 32);
     memcpy(out_child_cof, parent_cof, sizeof(scalar_t));
     return;
@@ -213,6 +214,22 @@ void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, 
   scalar_get_b32(child_scalar_data, &child_key);
 
   seed_to_kdf(child_scalar_data, 32, out32_child_secret, out_child_cof);
+}
+
+HKdf_t* get_HKdf(uint32_t index)
+{
+  uint8_t seed[DIGEST_LENGTH];
+  phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
+
+  uint8_t master_secret_key[DIGEST_LENGTH];
+  scalar_t master_cofactor;
+  seed_to_kdf(seed, DIGEST_LENGTH, master_secret_key, &master_cofactor);
+
+  HKdf_t* hkdf = malloc(sizeof(HKdf_t));
+  HKdf_init(hkdf);
+  get_child_kdf(master_secret_key, &master_cofactor, index, hkdf->generator_secret, &hkdf->cofactor);
+
+  return hkdf;
 }
 
 uint8_t* get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size)

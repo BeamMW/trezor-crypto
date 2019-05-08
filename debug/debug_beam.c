@@ -157,6 +157,22 @@ int test_tx_kernel(void)
     return 0;
 }
 
+void test_key_generation(void)
+{
+    key_idv_t kidv;
+    key_idv_init(&kidv);
+    kidv.value = 3;
+
+    secp256k1_gej commitment;
+    create_kidv_image(&kidv, &commitment, 1);
+
+    point_t image;
+    export_gej_to_point(&commitment, &image);
+    DEBUG_PRINT("Generated key X:", image.x, DIGEST_LENGTH);
+    printf("Generated key Y: %d\n", image.y);
+    VERIFY_TEST(IS_EQUAL_HEX("tocalc", image.x, DIGEST_LENGTH));
+}
+
 void test_range_proof_confidential(void)
 {
   const uint8_t asset_id[] = {0xcc, 0xb2, 0xcd, 0xc6, 0x9b, 0xb4, 0x54, 0x11, 0x0e, 0x82, 0x74, 0x41, 0x21, 0x3d, 0xdc, 0x87, 0x70, 0xe9, 0x3e, 0xa1, 0x41, 0xe1, 0xfc, 0x67, 0x3e, 0x01, 0x7e, 0x97, 0xea, 0xdc, 0x6b, 0x96};
@@ -346,6 +362,7 @@ int main(void)
   test_range_proof_public();
   test_range_proof_confidential();
   test_tx_kernel();
+  test_key_generation();
 
   free_context();
   malloc_stats();
