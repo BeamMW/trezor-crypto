@@ -34,6 +34,7 @@ uint8_t *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, co
 
 void create_master_nonce(uint8_t *master);
 
+// 'derived' is an IN and OUT param. The value of 'derived' will be added to the nonce generation process.
 void create_derived_nonce(const uint8_t *master, uint8_t *derived, uint8_t *derived_image);
 
 #endif //_FUNCTIONS_
