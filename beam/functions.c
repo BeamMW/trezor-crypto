@@ -260,7 +260,7 @@ void create_master_nonce(uint8_t *master)
   scalar_get_b32(master, &master_nonce);
 }
 
-void create_derived_nonce(const uint8_t *master, uint8_t *derived, uint8_t *derived_image)
+void create_derived_nonce(const uint8_t *master, uint8_t idx, uint8_t *derived, uint8_t *derived_image)
 {
   scalar_t derived_nonce;
   nonce_generator_t nonce;
@@ -268,6 +268,7 @@ void create_derived_nonce(const uint8_t *master, uint8_t *derived, uint8_t *deri
   nonce_generator_init(&nonce, (const uint8_t *)"beam-derived-nonce", 19);
   nonce_generator_write(&nonce, master, 32);
   nonce_generator_write(&nonce, derived, 32);
+  nonce_generator_write(&nonce, &idx, sizeof(idx));
   nonce_generator_export_scalar(&nonce, NULL, 0, &derived_nonce);
 
   sk_to_pk(&derived_nonce, get_context()->generator.G_pts, derived_image);
