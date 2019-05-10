@@ -86,6 +86,45 @@ void rangeproof_public_recovery_init(rangeproof_public_recovery_t* recovery)
     packed_key_id_init(&recovery->kid);
 }
 
+
+void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const scalar_t* sk, const uint8_t* nonce, const uint8_t* asset_id, uint8_t is_public)
+{
+    UNUSED(nonce);
+    UNUSED(sk);
+
+    rangeproof_creator_params_t crp;
+    test_set_buffer(crp.seed, 3, DIGEST_LENGTH);
+    crp.kidv.value = kidv->value;
+    crp.kidv.id.idx = kidv->id.idx;
+    crp.kidv.id.type = kidv->id.type;
+    crp.kidv.id.sub_idx = kidv->id.sub_idx;
+
+    //TODO: replace with real sk instead of writing random/test data
+    scalar_t temp_sk;
+    uint8_t sk_bytes[DIGEST_LENGTH];
+    test_set_buffer(sk_bytes, 3, DIGEST_LENGTH);
+    scalar_set_b32(&temp_sk, sk_bytes, NULL);
+
+    SHA256_CTX oracle;
+    sha256_Init(&oracle);
+
+    if (is_public)
+    {
+        rangeproof_public_t rp;
+        rangeproof_public_create(&rp, &temp_sk, &crp, &oracle);
+        memcpy(out, (void*)&rp, sizeof(rp));
+    }
+    else
+    {
+        secp256k1_gej asset_tag_h_gen;
+        switch_commitment(asset_id, &asset_tag_h_gen);
+
+        rangeproof_confidential_t rp;
+        rangeproof_confidential_create(&rp, &temp_sk, &crp, &oracle, &asset_tag_h_gen);
+        memcpy(out, (void*)&rp, sizeof(rp));
+    }
+}
+
 void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar_t *sk,
                                     const rangeproof_creator_params_t *cp, SHA256_CTX *oracle, const secp256k1_gej *h_gen)
 {
