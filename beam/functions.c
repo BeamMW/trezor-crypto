@@ -246,15 +246,13 @@ uint8_t* get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, co
   return export_encrypted(p, sizeof(HKdf_pub_packed_t), 'P', secret, secret_size, (const uint8_t*)"0", 1);
 }
 
-void create_master_nonce(uint8_t *master)
+void create_master_nonce(uint8_t *master, const uint8_t *seed32)
 {
   scalar_t master_nonce;
   nonce_generator_t nonce;
-  uint8_t bytes[32];
-  random_buffer(bytes, sizeof(bytes));
 
   nonce_generator_init(&nonce, (const uint8_t *)"beam-master-nonce", 18);
-  nonce_generator_write(&nonce, bytes, sizeof(bytes));
+  nonce_generator_write(&nonce, seed32, 32);
   nonce_generator_export_scalar(&nonce, NULL, 0, &master_nonce);
 
   scalar_get_b32(master, &master_nonce);

@@ -32,7 +32,7 @@ HKdf_t* get_HKdf(uint32_t index);
 
 uint8_t *get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size);
 
-void create_master_nonce(uint8_t *master);
+void create_master_nonce(uint8_t *master, const uint8_t *seed32);
 
 // 'derived' is an IN and OUT param. The value of 'derived' will be added to the nonce generation process.
 void create_derived_nonce(const uint8_t *master, uint8_t idx, uint8_t *derived, uint8_t *derived_image);
