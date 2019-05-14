@@ -82,6 +82,8 @@ void create_kidv_image(const key_idv_t* kidv, secp256k1_gej* out_commitment, uin
     {
         create_common_kidv_image(kidv, kdf, out_commitment);
     }
+
+    free(kdf);
 }
 
 

@@ -56,6 +56,7 @@
 void test_set_buffer(void* data, uint32_t size, uint8_t value);
 
 void transaction_init(transaction_t* transaction);
+void transaction_free(transaction_t* transaction);
 void signature_init(ecc_signature_t* signature);
 void point_init(point_t* point);
 void key_idv_init(key_idv_t* kidv);
@@ -63,6 +64,7 @@ void packed_key_id_init(packed_key_id_t* kid);
 void tx_element_init(tx_element_t* tx_element);
 void tx_input_init(tx_input_t* input);
 void tx_output_init(tx_output_t* output);
+void tx_output_free(tx_output_t* output);
 void kernel_init(tx_kernel_t* kernel);
 void HKdf_init(HKdf_t* kdf);
 

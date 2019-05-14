@@ -78,9 +78,6 @@ void verify_scalar_data(const char* msg, const char* hex_data, const scalar_t* s
 
 int test_tx_kernel(void)
 {
-    tx_inputs_vec_t inputs;
-    vec_init(&inputs);
-
     transaction_t transaction;
     transaction_init(&transaction);
     HKdf_t kdf;
@@ -153,6 +150,8 @@ int test_tx_kernel(void)
                          &peer_sk, &peer_nonce, 1,
                          kernel_hash_message);
     verify_scalar_data("CoSignKernel - pt2. Sig sk: ", "ac0cdbf0769737e7cd3e2c36bf559f948c80236e8fac0fd713df65ca4eec8f67", &kernel.kernel.signature.k);
+
+    transaction_free(&transaction);
 
     return 0;
 }

@@ -18,6 +18,27 @@ void transaction_init(transaction_t* t)
     vec_init(&t->kernels);
 }
 
+void transaction_free(transaction_t* t)
+{
+    vec_deinit_inner_ptrs(&t->inputs, tx_input_t);
+
+    // Delete rangeproofs for each output
+    for (size_t i = 0; i < (size_t)t->outputs.length; ++i)
+    {
+        tx_output_free(t->outputs.data[i]);
+    }
+    // Delete outputs
+    vec_deinit_inner_ptrs(&t->outputs, tx_output_t);
+
+    // Delete inner nested kernels
+    for (size_t i = 0; i < (size_t)t->kernels.length; ++i)
+    {
+        vec_deinit_inner_ptrs(&t->kernels.data[i]->nested_kernels, _tx_kernel_t);
+    }
+    // Delete kernels itself
+    vec_deinit_inner_ptrs(&t->kernels, tx_kernel_t);
+}
+
 void signature_init(ecc_signature_t* signature)
 {
     scalar_clear(&signature->k);
@@ -72,6 +93,12 @@ void tx_output_init(tx_output_t* output)
     output->confidential_proof = malloc(sizeof(rangeproof_confidential_t));
     output->public_proof = malloc(sizeof(rangeproof_public_t));
     rangeproof_public_init(output->public_proof);
+}
+
+void tx_output_free(tx_output_t* output)
+{
+    free(output->confidential_proof);
+    free(output->public_proof);
 }
 
 void kernel_init(tx_kernel_t* kernel)
