@@ -87,23 +87,24 @@ void rangeproof_public_recovery_init(rangeproof_public_recovery_t* recovery)
 }
 
 
-void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const scalar_t* sk, const uint8_t* nonce, const uint8_t* asset_id, uint8_t is_public)
+void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const uint8_t* asset_id, uint8_t is_public)
 {
-    UNUSED(nonce);
-    UNUSED(sk);
+    HKdf_t* kdf = get_HKdf(0);
+    secp256k1_gej h_gen;
+    switch_commitment(asset_id, &h_gen);
+    secp256k1_gej commitment_native;
+    scalar_t sk;
+    switch_commitment_create(&sk, &commitment_native, kdf, kidv, 1, &h_gen);
+    // Write results - commitment_native - to point_t
+    point_t commitment;
+    export_gej_to_point(&commitment_native, &commitment);
 
     rangeproof_creator_params_t crp;
-    test_set_buffer(crp.seed, 3, DIGEST_LENGTH);
     crp.kidv.value = kidv->value;
     crp.kidv.id.idx = kidv->id.idx;
     crp.kidv.id.type = kidv->id.type;
     crp.kidv.id.sub_idx = kidv->id.sub_idx;
-
-    //TODO: replace with real sk instead of writing random/test data
-    scalar_t temp_sk;
-    uint8_t sk_bytes[DIGEST_LENGTH];
-    test_set_buffer(sk_bytes, 3, DIGEST_LENGTH);
-    scalar_set_b32(&temp_sk, sk_bytes, NULL);
+    get_seed_kid_from_commitment(&commitment, crp.seed, kdf);
 
     SHA256_CTX oracle;
     sha256_Init(&oracle);
@@ -111,18 +112,17 @@ void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const s
     if (is_public)
     {
         rangeproof_public_t rp;
-        rangeproof_public_create(&rp, &temp_sk, &crp, &oracle);
+        rangeproof_public_create(&rp, &sk, &crp, &oracle);
         memcpy(out, (void*)&rp, sizeof(rp));
     }
     else
     {
-        secp256k1_gej asset_tag_h_gen;
-        switch_commitment(asset_id, &asset_tag_h_gen);
-
         rangeproof_confidential_t rp;
-        rangeproof_confidential_create(&rp, &temp_sk, &crp, &oracle, &asset_tag_h_gen);
+        rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &h_gen);
         memcpy(out, (void*)&rp, sizeof(rp));
     }
+
+    free(kdf);
 }
 
 void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar_t *sk,

@@ -165,14 +165,14 @@ void signature_sign(const uint8_t *msg32, const scalar_t *sk, const secp256k1_ge
   scalar_get_b32(bytes, sk);
 
   nonce_generator_init(&secret, (const uint8_t *)"beam-Schnorr", 13);
-  nonce_generator_write(&secret, bytes, 32);
+  nonce_generator_write(&secret, bytes, DIGEST_LENGTH);
 
 #ifdef BEAM_DEBUG
-  test_set_buffer(bytes, DIGEST_LENGTH, 32);
+  test_set_buffer(bytes, 32, DIGEST_LENGTH);
 #else
   random_buffer(bytes, sizeof(bytes) / sizeof(bytes[0])); // add extra randomness to the nonce, so it's derived from both deterministic and random parts
 #endif
-  nonce_generator_write(&secret, bytes, 32);
+  nonce_generator_write(&secret, bytes, DIGEST_LENGTH);
 
   scalar_t multisig_nonce;
   nonce_generator_export_scalar(&secret, NULL, 0, &multisig_nonce);

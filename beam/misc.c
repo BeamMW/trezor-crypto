@@ -203,3 +203,23 @@ int kernel_cmp(const tx_kernel_t* lhs, const tx_kernel_t* rhs)
     return bigint_cmp(lhs->kernel.hash_lock_preimage, DIGEST_LENGTH, rhs->kernel.hash_lock_preimage, DIGEST_LENGTH);
 }
 
+void get_seed_kid_from_commitment(const point_t* commitment, uint8_t* seed, HKdf_t* kdf)
+{
+    SHA256_CTX hp;
+    sha256_Init(&hp);
+    sha256_Update(&hp, commitment->x, DIGEST_LENGTH);
+    sha256_write_8(&hp, commitment->y);
+    sha256_Final(&hp, seed);
+
+    scalar_t sk;
+    derive_key(kdf->generator_secret, DIGEST_LENGTH, seed, DIGEST_LENGTH, &kdf->cofactor, &sk);
+
+    uint8_t sk_data[DIGEST_LENGTH];
+    scalar_get_b32(sk_data, &sk);
+
+    SHA256_CTX hp2;
+    sha256_Init(&hp2);
+    sha256_Update(&hp2, sk_data, DIGEST_LENGTH);
+    sha256_Final(&hp2, seed);
+}
+

@@ -191,22 +191,7 @@ void tx_output_create(tx_output_t* output, scalar_t* sk, HKdf_t* coin_kdf, const
 
 void tx_output_get_seed_kid(const tx_output_t* output, uint8_t* seed, HKdf_t* kdf)
 {
-    SHA256_CTX hp;
-    sha256_Init(&hp);
-    sha256_Update(&hp, output->tx_element.commitment.x, DIGEST_LENGTH);
-    sha256_write_8(&hp, output->tx_element.commitment.y);
-    sha256_Final(&hp, seed);
-
-    scalar_t sk;
-    derive_key(kdf->generator_secret, DIGEST_LENGTH, seed, DIGEST_LENGTH, &kdf->cofactor, &sk);
-
-    uint8_t sk_data[DIGEST_LENGTH];
-    scalar_get_b32(sk_data, &sk);
-
-    SHA256_CTX hp2;
-    sha256_Init(&hp2);
-    sha256_Update(&hp2, sk_data, DIGEST_LENGTH);
-    sha256_Final(&hp2, seed);
+    get_seed_kid_from_commitment(&output->tx_element.commitment, seed, kdf);
 }
 
 void peer_add_output(tx_outputs_vec_t* tx_outputs, scalar_t* peer_scalar, uint64_t val, HKdf_t* kdf, const uint8_t* asset_id)

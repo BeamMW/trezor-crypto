@@ -111,7 +111,7 @@ void rangeproof_creator_params_init(rangeproof_creator_params_t* crp);
 void rangeproof_public_init(rangeproof_public_t* public);
 void rangeproof_public_recovery_init(rangeproof_public_recovery_t* recovery);
 
-void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const scalar_t* sk, const uint8_t* nonce, const uint8_t* asset_id, uint8_t is_public);
+void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const uint8_t* asset_id, uint8_t is_public);
 
 void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar_t *sk,
                                     const rangeproof_creator_params_t *cp, SHA256_CTX *oracle, const secp256k1_gej *h_gen);
