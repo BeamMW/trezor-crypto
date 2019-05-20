@@ -94,7 +94,7 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
                       uint64_t fee, uint8_t should_emit_custom_tag);
 int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
                     const uint8_t* hash_lock_preimage,
-                    uint8_t* hash_value, uint8_t* fee,
+                    uint8_t* hash_value, uint64_t* fee,
                     secp256k1_gej* excess);
 void kernel_get_hash(const tx_kernel_t* kernel, const uint8_t* hash_lock_preimage, uint8_t* out);
 void cosign_kernel_part_1(tx_kernel_t* kernel,

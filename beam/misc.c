@@ -22,13 +22,7 @@ void transaction_free(transaction_t* t)
 {
     vec_deinit_inner_ptrs(&t->inputs, tx_input_t);
 
-    // Delete rangeproofs for each output
-    for (size_t i = 0; i < (size_t)t->outputs.length; ++i)
-    {
-        tx_output_free(t->outputs.data[i]);
-    }
-    // Delete outputs
-    vec_deinit_inner_ptrs(&t->outputs, tx_output_t);
+    transaction_free_outputs(&t->outputs);
 
     // Delete inner nested kernels
     for (size_t i = 0; i < (size_t)t->kernels.length; ++i)
@@ -37,6 +31,17 @@ void transaction_free(transaction_t* t)
     }
     // Delete kernels itself
     vec_deinit_inner_ptrs(&t->kernels, tx_kernel_t);
+}
+
+void transaction_free_outputs(tx_outputs_vec_t* outputs)
+{
+    // Delete rangeproofs for each output
+    for (size_t i = 0; i < (size_t)outputs->length; ++i)
+    {
+        tx_output_free(outputs->data[i]);
+    }
+    // Delete outputs
+    vec_deinit_inner_ptrs(outputs, tx_output_t);
 }
 
 void signature_init(ecc_signature_t* signature)

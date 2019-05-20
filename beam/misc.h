@@ -57,6 +57,7 @@ void test_set_buffer(void* data, uint32_t size, uint8_t value);
 
 void transaction_init(transaction_t* transaction);
 void transaction_free(transaction_t* transaction);
+void transaction_free_outputs(tx_outputs_vec_t* outputs);
 void signature_init(ecc_signature_t* signature);
 void point_init(point_t* point);
 void key_idv_init(key_idv_t* kidv);

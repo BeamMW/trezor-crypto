@@ -227,7 +227,7 @@ void peer_add_output(tx_outputs_vec_t* tx_outputs, scalar_t* peer_scalar, uint64
 // AmountBig::Type is 128 bits = 16 bytes
 int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
                     const uint8_t* hash_lock_preimage,
-                    uint8_t* hash_value, uint8_t* fee,
+                    uint8_t* hash_value, uint64_t* fee,
                     secp256k1_gej* excess)
 {
     if (parent_kernel)
@@ -243,7 +243,8 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
 
     SHA256_CTX hp;
     sha256_Init(&hp);
-    sha256_write_64(&hp, kernel->kernel.fee);
+    if (fee)
+        sha256_write_64(&hp, kernel->kernel.fee);
     sha256_write_64(&hp, kernel->kernel.min_height);
     sha256_write_64(&hp, kernel->kernel.max_height);
     sha256_Update(&hp, kernel->kernel.tx_element.commitment.x, DIGEST_LENGTH);
@@ -302,11 +303,33 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
 
     if (excess)
     {
-        //TODO
+        secp256k1_gej pt;
+        if (! point_import_nnz(&pt, &kernel->kernel.tx_element.commitment))
+            return 0;
+
+        secp256k1_gej_neg(&point_excess_nested, &point_excess_nested);
+        secp256k1_gej_add_var(&point_excess_nested, &point_excess_nested, &pt, NULL);
+
+        if (! signature_is_valid(hash_value, &kernel->kernel.signature, &point_excess_nested, get_context()->generator.G_pts))
+            return 0;
+
+        secp256k1_gej_add_var(excess, excess, &pt, NULL);
+
+        //TODO: do we need support for the asset emission? Seems no
+        //if (kernel_emission->kernel.asset_emission)
+        //{
+            //TODO: do we need this on the device?
+            //if (!Rules::get().CA.Enabled)
+            //    return false;
+            //
+            // Ban complex cases. Emission kernels must be simple
+            //if (parent_kernel || kernel->nested_kernels.length != 0)
+            //    return false;
+        //}
     }
     if (fee)
     {
-        //TODO
+        *fee += kernel->kernel.fee;
     }
 
     return 1;
