@@ -208,7 +208,7 @@ int kernel_cmp(const tx_kernel_t* lhs, const tx_kernel_t* rhs)
     return bigint_cmp(lhs->kernel.hash_lock_preimage, DIGEST_LENGTH, rhs->kernel.hash_lock_preimage, DIGEST_LENGTH);
 }
 
-void get_seed_kid_from_commitment(const point_t* commitment, uint8_t* seed, HKdf_t* kdf)
+void get_seed_kid_from_commitment(const point_t* commitment, uint8_t* seed, const HKdf_t* kdf)
 {
     SHA256_CTX hp;
     sha256_Init(&hp);

@@ -216,20 +216,14 @@ void get_child_kdf(const uint8_t *parent_secret_32, const scalar_t *parent_cof, 
   seed_to_kdf(child_scalar_data, 32, out32_child_secret, out_child_cof);
 }
 
-HKdf_t* get_HKdf(uint32_t index)
+void get_HKdf(uint32_t index, const uint8_t* seed, HKdf_t* hkdf)
 {
-  uint8_t seed[DIGEST_LENGTH];
-  phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
-
   uint8_t master_secret_key[DIGEST_LENGTH];
   scalar_t master_cofactor;
   seed_to_kdf(seed, DIGEST_LENGTH, master_secret_key, &master_cofactor);
 
-  HKdf_t* hkdf = malloc(sizeof(HKdf_t));
   HKdf_init(hkdf);
   get_child_kdf(master_secret_key, &master_cofactor, index, hkdf->generator_secret, &hkdf->cofactor);
-
-  return hkdf;
 }
 
 uint8_t* get_owner_key(const uint8_t *master_key, const scalar_t *master_cof, const uint8_t *secret, size_t secret_size)

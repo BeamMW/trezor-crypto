@@ -57,7 +57,7 @@ void switch_commitment(const uint8_t *asset_id, secp256k1_gej* h_gen)
   }
 }
 
-void create_common_kidv_image(const key_idv_t* kidv, HKdf_t* kdf, secp256k1_gej* out_commitment)
+void create_common_kidv_image(const HKdf_t* kdf, const key_idv_t* kidv, secp256k1_gej* out_commitment)
 {
     uint8_t hash_id[DIGEST_LENGTH];
     generate_hash_id(kidv->id.idx, kidv->id.type, kidv->id.sub_idx, hash_id);
@@ -69,9 +69,8 @@ void create_common_kidv_image(const key_idv_t* kidv, HKdf_t* kdf, secp256k1_gej*
     generator_mul_scalar(out_commitment, get_context()->generator.G_pts, &sk);
 }
 
-void create_kidv_image(const key_idv_t* kidv, secp256k1_gej* out_commitment, uint8_t create_coin_key)
+void create_kidv_image(const HKdf_t* kdf, const key_idv_t* kidv, secp256k1_gej* out_commitment, uint8_t create_coin_key)
 {
-    HKdf_t* kdf = get_HKdf(0);
     if (create_coin_key)
     {
         scalar_t sk;
@@ -80,14 +79,12 @@ void create_kidv_image(const key_idv_t* kidv, secp256k1_gej* out_commitment, uin
     }
     else
     {
-        create_common_kidv_image(kidv, kdf, out_commitment);
+        create_common_kidv_image(kdf, kidv, out_commitment);
     }
-
-    free(kdf);
 }
 
 
-void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf, const key_idv_t* kidv, uint8_t has_commitment, const secp256k1_gej* h_gen)
+void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, const HKdf_t* kdf, const key_idv_t* kidv, uint8_t has_commitment, const secp256k1_gej* h_gen)
 {
     uint8_t hash_id[DIGEST_LENGTH];
     generate_hash_id(kidv->id.idx, kidv->id.type, kidv->id.sub_idx, hash_id);

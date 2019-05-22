@@ -69,9 +69,9 @@ typedef struct
 } transaction_t;
 
 void ecc_tag_add_value(const secp256k1_gej* h_gen, uint64_t value, secp256k1_gej* out);
-void create_kidv_image(const key_idv_t* key_idv, secp256k1_gej* out_commitment, uint8_t create_coin_key);
+void create_kidv_image(const HKdf_t* kdf, const key_idv_t* key_idv, secp256k1_gej* out_commitment, uint8_t create_coin_key);
 void switch_commitment(const uint8_t *asset_id, secp256k1_gej* h_gen);
-void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, HKdf_t* kdf,
+void switch_commitment_create(scalar_t* sk, secp256k1_gej* commitment, const HKdf_t* kdf,
                               const key_idv_t* kidv, uint8_t has_commitment, const secp256k1_gej* h_gen);
 void switch_commitment_get_sk1(const secp256k1_gej* commitment, const secp256k1_gej* sk0_j,
                                scalar_t* scalar_out);

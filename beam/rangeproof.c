@@ -86,10 +86,8 @@ void rangeproof_public_recovery_init(rangeproof_public_recovery_t* recovery)
     packed_key_id_init(&recovery->kid);
 }
 
-
-void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const uint8_t* asset_id, uint8_t is_public)
+void rangeproof_create_from_key_idv(const HKdf_t* kdf, uint8_t* out, const key_idv_t* kidv, const uint8_t* asset_id, uint8_t is_public)
 {
-    HKdf_t* kdf = get_HKdf(0);
     secp256k1_gej h_gen;
     switch_commitment(asset_id, &h_gen);
     secp256k1_gej commitment_native;
@@ -121,8 +119,6 @@ void rangeproof_create_from_key_idv(uint8_t* out, const key_idv_t* kidv, const u
         rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &h_gen);
         memcpy(out, (void*)&rp, sizeof(rp));
     }
-
-    free(kdf);
 }
 
 void rangeproof_confidential_create(rangeproof_confidential_t *out, const scalar_t *sk,
