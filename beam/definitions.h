@@ -95,6 +95,7 @@ typedef struct
   key_id_t id;
   uint64_t value;
 } key_idv_t;
+typedef vec_t(key_idv_t) kidv_vec_t;
 
 #pragma pack(push, 1)
 typedef struct
