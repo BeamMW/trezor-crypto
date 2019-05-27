@@ -13,6 +13,8 @@ typedef struct
   uint8_t number;
 } nonce_generator_t;
 
+int is_scalar_valid(uint8_t *scalar);
+
 void nonce_generator_init(nonce_generator_t *nonce, const uint8_t *salt, uint8_t salt_size);
 
 void nonce_generator_write(nonce_generator_t *nonce, const uint8_t *seed, uint8_t seed_size);
