@@ -16,6 +16,8 @@
 #define N_BITS_PER_LEVEL 2
 #define N_POINTS_PER_LEVEL (1 << N_BITS_PER_LEVEL) //16
 #define N_LEVELS (N_BITS / N_BITS_PER_LEVEL)
+#define MASTER_NONCE_SLOT 0
+#define MAX_NONCE_SLOT 255
 
 #define _COUNT_OF(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 #define _FOURCC_CONST(a, b, c, d) ((uint32_t)((((((uint8_t)a << 8) | (uint8_t)b) << 8) | (uint8_t)c) << 8) | (uint8_t)d)

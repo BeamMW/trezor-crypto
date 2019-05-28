@@ -68,6 +68,25 @@ typedef struct
   tx_kernels_vec_t kernels;
 } transaction_t;
 
+typedef struct
+{
+  // Common kernel parameters
+  uint64_t fee;
+  uint64_t min_height;
+  uint64_t max_height;
+
+  // Aggregated data
+  point_t kernel_commitment;
+  point_t kernel_nonce;
+
+  // Nonce slot used
+  uint32_t nonce_slot;
+
+  // Additional explicit blinding factor that should be added
+  scalar_t offset;
+} transaction_data_t;
+
+uint8_t is_valid_nonce_slot(uint32_t nonce_slot);
 void ecc_tag_add_value(const secp256k1_gej* h_gen, uint64_t value, secp256k1_gej* out);
 void create_kidv_image(const HKdf_t* kdf, const key_idv_t* key_idv, secp256k1_gej* out_commitment, uint8_t create_coin_key);
 void switch_commitment(const uint8_t *asset_id, secp256k1_gej* h_gen);
@@ -106,5 +125,11 @@ void cosign_kernel_part_2(tx_kernel_t* kernel,
                           secp256k1_gej* xG,
                           scalar_t* peer_scalars, scalar_t* peer_nonces, size_t num_peers,
                           uint8_t* kernel_hash_message);
+uint8_t sign_transaction_part_1(uint64_t* value_transferred, scalar_t* sk_total,
+                                const kidv_vec_t* inputs, const kidv_vec_t* outputs, const transaction_data_t* tx_data,
+                                const HKdf_t* kdf);
+uint8_t sign_transaction_part_2(scalar_t* res,
+                                const transaction_data_t* tx_data,
+                                const scalar_t* nonce, const scalar_t* sk_total);
 
 #endif // __BEAM_KERNEL__

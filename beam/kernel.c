@@ -473,3 +473,140 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
 
     vec_push(trg_kernels, kernel);
 }
+
+// Add the blinding factor and value of a specific TXO
+void summarize_once(scalar_t* res, int64_t* d_val_out, const key_idv_t* kidv, const HKdf_t* kdf)
+{
+    int64_t d_val = *d_val_out;
+
+    scalar_t sk;
+    secp256k1_gej h_gen;
+    switch_commitment(NULL, &h_gen);
+    secp256k1_gej commitment_native;
+    switch_commitment_create(&sk, &commitment_native, kdf, kidv, 1, &h_gen);
+    // Write results - commitment_native - to TxOutput
+    //export_gej_to_point(&commitment_native, &output->tx_element.commitment);
+
+    scalar_add(res, res, &sk);
+    d_val += kidv->value;
+
+    *d_val_out = d_val;
+}
+
+// Summarize. Summarizes blinding factors and values of several in/out TXOs
+void summarize_bf_and_values(scalar_t* res, int64_t* d_val_out, const kidv_vec_t* inputs, const kidv_vec_t* outputs, const HKdf_t* kdf)
+{
+    int64_t d_val = *d_val_out;
+
+    scalar_negate(res, res);
+    d_val = -d_val;
+
+    for (uint32_t i = 0; i < (uint32_t)outputs->length; ++i)
+        summarize_once(res, &d_val, &outputs->data[i], kdf);
+
+    scalar_negate(res, res);
+    d_val = -d_val;
+
+    for (uint32_t i = 0; i < (uint32_t)inputs->length; ++i)
+        summarize_once(res, &d_val, &inputs->data[i], kdf);
+
+    *d_val_out = d_val;
+}
+
+void summarize_commitment(secp256k1_gej* res, const kidv_vec_t* inputs, const kidv_vec_t* outputs, const HKdf_t* kdf)
+{
+    scalar_t sk;
+    scalar_clear(&sk);
+    int64_t d_val = 0;
+    summarize_bf_and_values(&sk, &d_val, inputs, outputs, kdf);
+
+    generator_mul_scalar(res, get_context()->generator.G_pts, &sk);
+
+    if (d_val < 0)
+    {
+        secp256k1_gej_neg(res, res);
+
+        //res += Context::get().H * Amount(-dVal);
+        scalar_t sk1;
+        scalar_set_u64(&sk1, (uint64_t)d_val * -1);
+        scalar_negate(&sk1, &sk1);
+        secp256k1_gej sk1_h_mul_result;
+        generator_mul_scalar(&sk1_h_mul_result, get_context()->generator.H_pts, &sk1);
+        secp256k1_gej_add_var(res, res, &sk1_h_mul_result, NULL);
+
+        secp256k1_gej_neg(res, res);
+    }
+    else
+    {
+        //res += Context::get().H * Amount(dVal);
+        scalar_t sk1;
+        scalar_set_u64(&sk1, (uint64_t)d_val);
+        secp256k1_gej sk1_h_mul_result;
+        generator_mul_scalar(&sk1_h_mul_result, get_context()->generator.H_pts, &sk1);
+        secp256k1_gej_add_var(res, res, &sk1_h_mul_result, NULL);
+    }
+}
+
+uint8_t is_valid_nonce_slot(uint32_t nonce_slot)
+{
+    if (nonce_slot == MASTER_NONCE_SLOT
+        || nonce_slot > MAX_NONCE_SLOT)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+uint8_t sign_transaction_part_1(uint64_t* value_transferred, scalar_t* sk_total,
+                                const kidv_vec_t* inputs, const kidv_vec_t* outputs, const transaction_data_t* tx_data,
+                                const HKdf_t* kdf)
+{
+    if (! is_valid_nonce_slot(tx_data->nonce_slot))
+        return 0;
+
+    memcpy(sk_total, &tx_data->offset, sizeof(scalar_t));
+    int64_t d_val = 0;
+
+    // calculate the overall blinding factor, and the sum being sent/transferred
+    summarize_bf_and_values(sk_total, &d_val, inputs, outputs, kdf);
+
+    const uint8_t is_sending = (d_val > 0);
+    if (is_sending)
+        d_val = -d_val;
+
+    *value_transferred = (uint64_t)d_val;
+
+    return 1;
+}
+
+uint8_t sign_transaction_part_2(scalar_t* res,
+                                const transaction_data_t* tx_data,
+                                const scalar_t* nonce, const scalar_t* sk_total)
+{
+    // TODO: Ask user permission to send/receive the value transferred BEFORE this step is called
+
+    if (! is_valid_nonce_slot(tx_data->nonce_slot))
+        return 0;
+
+    // Calculate the Kernel ID
+    tx_kernel_t krn;
+    krn.kernel.min_height = tx_data->min_height;
+    krn.kernel.max_height = tx_data->max_height;
+    krn.kernel.fee = tx_data->fee;
+    memcpy(&krn.kernel.tx_element.commitment, &tx_data->kernel_commitment, sizeof(point_t));
+
+    //TODO: get exact size of the hash
+    uint8_t kernel_hash_value[DIGEST_LENGTH];
+    kernel_get_hash(&krn, NULL, kernel_hash_value);
+
+    // Create partial signature
+
+    ecc_signature_t sig;
+    memcpy(&sig.nonce_pub, &tx_data->kernel_nonce, sizeof(secp256k1_gej));
+
+    signature_sign_partial(nonce, &sig.nonce_pub, kernel_hash_value, sk_total, res);
+
+    return 1;
+}
+
