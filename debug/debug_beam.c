@@ -9,6 +9,12 @@
 #include "../beam/inner_product.h"
 #include "definitions_test.h"
 
+#define START_TEST(func)                                                                                     \
+  do {                                                                                                       \
+    printf(ANSI_COLOR_MAGENTA "Test set has been started: " ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, #func); \
+    func();                                                                                                  \
+  } while (0)
+
 #define VERIFY_TEST(x)                                                                                                        \
   do                                                                                                                          \
   {                                                                                                                           \
@@ -36,8 +42,8 @@
       printf(ANSI_COLOR_GREEN "Test passed!" ANSI_COLOR_CYAN " Line=%u" ANSI_COLOR_RESET ", Expression: %s\n", __LINE__, #x); \
   } while (0)
 
-void printAsBytes(const char *name, const void *mem, size_t len)
-{
+      void
+      printAsBytes(const char *name, const void *mem, size_t len) {
   uint8_t tmp[len];
   memcpy(tmp, mem, len);
   printf("const uint8_t %s[] = { ", name);
@@ -78,11 +84,13 @@ void verify_scalar_data(const char* msg, const char* hex_data, const scalar_t* s
 
 int test_tx_kernel(void)
 {
+    uint8_t seed[DIGEST_LENGTH];	
+    phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
     transaction_t transaction;
     transaction_init(&transaction);
     HKdf_t kdf;
+    // get_HKdf(0, seed, &kdf);
     HKdf_init(&kdf);
-    //DEBUG_PRINT("KDF: ", kdf.generator_secret, DIGEST_LENGTH);
     scalar_t peer_sk;
     scalar_clear(&peer_sk);
 
@@ -96,9 +104,14 @@ int test_tx_kernel(void)
     peer_add_output(&transaction.outputs, &peer_sk, 100, &kdf, NULL);//REALLY NULL?!
     verify_scalar_data("Peer sk data (after out): ", "bd20898bbe8720a3eb8504dcc8b61ffd63f0fc54d66799b0d84b880d6e9630d4", &peer_sk);
 
-    DEBUG_PRINT("RP pub checksum:", transaction.outputs.data[0]->public_proof->recovery.checksum, 32);
-    VERIFY_TEST(IS_EQUAL_HEX("654a4cac95b6654ee9c99c6a8a32236c8d06c1552c76b83f09c2f055325b2312",
-                             transaction.outputs.data[0]->public_proof->recovery.checksum, 64));
+    uint8_t *pub_checksum = transaction.outputs.data[0]->public_proof->recovery.checksum;
+    int is_rangeproof_public = !memis0(pub_checksum, 32);
+    DEBUG_PRINT("rangeproof_public was used to create output:", ((uint8_t*)&is_rangeproof_public), sizeof(int));
+    if (is_rangeproof_public)
+    {
+        DEBUG_PRINT("RP pub checksum:", pub_checksum, 32);
+        VERIFY_TEST(IS_EQUAL_HEX("654a4cac95b6654ee9c99c6a8a32236c8d06c1552c76b83f09c2f055325b2312", pub_checksum, 64));
+    }
 
     {
         SHA256_CTX rp_hash;
@@ -137,8 +150,8 @@ int test_tx_kernel(void)
                          &transaction.offset, kernel_hash_message,
                          //TODO: Valdo said we have no hash lock in kernels currently
                          hash_lock_preimage);
-    DEBUG_PRINT("Kernel commitment X: ", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH);
-    printf("Kernel commitment Y: %u\n", kernel.kernel.tx_element.commitment.y);
+    DEBUG_PRINT("Kernel commitment X:", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH);
+    DEBUG_PRINT("Kernel commitment Y:", ((uint8_t *)&kernel.kernel.tx_element.commitment.y), 1);
     VERIFY_TEST(IS_EQUAL_HEX("531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH * 2));
     VERIFY_TEST(kernel.kernel.tx_element.commitment.y == 1);
     verify_scalar_data("Transaction offset: ", "c0238c8ec18a23a6ee8807dfcbb9230066f3ff57d96a9cb3db4e8b10719933d7", &transaction.offset);
@@ -158,18 +171,22 @@ int test_tx_kernel(void)
 
 void test_key_generation(void)
 {
+    uint8_t seed[DIGEST_LENGTH];	
+    phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
+    HKdf_t kdf;
+    get_HKdf(0, seed, &kdf);
     key_idv_t kidv;
     key_idv_init(&kidv);
     kidv.value = 3;
 
     secp256k1_gej commitment;
-    create_kidv_image(&kidv, &commitment, 1);
+    create_kidv_image(&kdf, &kidv, &commitment, 1);
 
     point_t image;
     export_gej_to_point(&commitment, &image);
     DEBUG_PRINT("Generated key X:", image.x, DIGEST_LENGTH);
-    printf("Generated key Y: %d\n", image.y);
-    VERIFY_TEST(IS_EQUAL_HEX("tocalc", image.x, DIGEST_LENGTH));
+    DEBUG_PRINT("Generated key Y:", ((uint8_t *)&image.y), 1);
+    VERIFY_TEST(IS_EQUAL_HEX("77874f7670516f293856d8f10c086e252936f495364cfe20f5e02f312b17dc2c", image.x, DIGEST_LENGTH));
 }
 
 void test_range_proof_confidential(void)
@@ -356,12 +373,12 @@ int main(void)
   random_reseed(time(NULL));
   init_context();
 
-  test_common();
-  test_inner_product();
-  test_range_proof_public();
-  test_range_proof_confidential();
-  test_tx_kernel();
-  test_key_generation();
+  START_TEST(test_common);
+  START_TEST(test_inner_product);
+  START_TEST(test_range_proof_public);
+  START_TEST(test_range_proof_confidential);
+  START_TEST(test_tx_kernel);
+  START_TEST(test_key_generation);
 
   free_context();
   malloc_stats();
