@@ -558,7 +558,7 @@ uint8_t is_valid_nonce_slot(uint32_t nonce_slot)
     return 1;
 }
 
-uint8_t sign_transaction_part_1(uint64_t* value_transferred, scalar_t* sk_total,
+uint8_t sign_transaction_part_1(int64_t* value_transferred, scalar_t* sk_total,
                                 const kidv_vec_t* inputs, const kidv_vec_t* outputs, const transaction_data_t* tx_data,
                                 const HKdf_t* kdf)
 {
@@ -571,11 +571,7 @@ uint8_t sign_transaction_part_1(uint64_t* value_transferred, scalar_t* sk_total,
     // calculate the overall blinding factor, and the sum being sent/transferred
     summarize_bf_and_values(sk_total, &d_val, inputs, outputs, kdf);
 
-    const uint8_t is_sending = (d_val > 0);
-    if (is_sending)
-        d_val = -d_val;
-
-    *value_transferred = (uint64_t)d_val;
+    *value_transferred = d_val;
 
     return 1;
 }

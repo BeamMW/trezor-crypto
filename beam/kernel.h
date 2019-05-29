@@ -125,7 +125,7 @@ void cosign_kernel_part_2(tx_kernel_t* kernel,
                           secp256k1_gej* xG,
                           scalar_t* peer_scalars, scalar_t* peer_nonces, size_t num_peers,
                           uint8_t* kernel_hash_message);
-uint8_t sign_transaction_part_1(uint64_t* value_transferred, scalar_t* sk_total,
+uint8_t sign_transaction_part_1(int64_t* value_transferred, scalar_t* sk_total,
                                 const kidv_vec_t* inputs, const kidv_vec_t* outputs, const transaction_data_t* tx_data,
                                 const HKdf_t* kdf);
 uint8_t sign_transaction_part_2(scalar_t* res,
