@@ -58,9 +58,11 @@ void point_init(point_t* point)
 
 void key_idv_init(key_idv_t* kidv)
 {
-    // TEST ONLY
-    //random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
-    test_set_buffer((uint8_t*)&kidv->id.idx, sizeof(kidv->id.idx), 3);
+#ifdef BEAM_DEBUG
+    test_set_buffer((uint8_t*)&kidv->id.idx, sizeof(kidv->id.idx), 0);
+#else
+    random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
+#endif
     kidv->id.sub_idx = 0;
     kidv->id.type = get_context()->key.Regular;
     kidv->value = 0;

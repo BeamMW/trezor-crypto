@@ -116,8 +116,11 @@ void peer_finalize_excess(scalar_t* peer_scalar, secp256k1_gej* kG, scalar_t* k_
     scalar_add(k_offset, k_offset, peer_scalar);
 
     uint8_t random_scalar_data[DIGEST_LENGTH];
-    //random_buffer(random_scalar_data, DIGEST_LENGTH);
+#ifdef BEAM_DEBUG
     test_set_buffer(random_scalar_data, DIGEST_LENGTH, 3);
+#else
+    random_buffer(random_scalar_data, DIGEST_LENGTH);
+#endif
     scalar_set_b32(peer_scalar, random_scalar_data, NULL);
     scalar_add(k_offset, k_offset, peer_scalar);
 
@@ -240,8 +243,8 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
 
     SHA256_CTX hp;
     sha256_Init(&hp);
-    if (fee)
-        sha256_write_64(&hp, kernel->kernel.fee);
+    //if (fee)
+    sha256_write_64(&hp, kernel->kernel.fee);
     sha256_write_64(&hp, kernel->kernel.min_height);
     sha256_write_64(&hp, kernel->kernel.max_height);
     sha256_Update(&hp, kernel->kernel.tx_element.commitment.x, DIGEST_LENGTH);
@@ -249,7 +252,7 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     sha256_write_64(&hp, kernel->kernel.asset_emission);
     const uint8_t is_empty_kernel_hash_lock_preimage = memis0(kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
     const uint8_t is_non_empty_kernel_hash_lock_preimage = ! is_empty_kernel_hash_lock_preimage;
-    sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
+    //sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
     //printf("Is non-empty hashlock: %u\n", is_non_empty_kernel_hash_lock_preimage);
     //printf("Is empty hashlock: %u\n", is_empty_kernel_hash_lock_preimage);
 
@@ -294,8 +297,6 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     }
     const uint8_t should_break = 1;
     sha256_write_8(&hp, should_break);
-    //TODO: Does this means that we extract from context?
-    // hp >> hv
     sha256_Final(&hp, hash_value);
 
     if (excess)
@@ -350,8 +351,11 @@ void cosign_kernel_part_1(tx_kernel_t* kernel,
 
         // Nonces are initialized as a random buffer
         uint8_t random_scalar_data[DIGEST_LENGTH];
-        //random_buffer(random_scalar_data, DIGEST_LENGTH);
+#ifdef BEAM_DEBUG
         test_set_buffer(random_scalar_data, DIGEST_LENGTH, 3);
+#else
+        random_buffer(random_scalar_data, DIGEST_LENGTH);
+#endif
         scalar_set_b32(&peer_nonces[i], random_scalar_data, NULL);
         secp256k1_gej nonce_mul_g;
         generator_mul_scalar(&nonce_mul_g, get_context()->generator.G_pts, &peer_nonces[i]);
@@ -410,8 +414,11 @@ void create_tx_kernel(tx_kernels_vec_t* trg_kernels,
     memmove(kernel->nested_kernels.data, nested_kernels->data, nested_kernels->length * sizeof(tx_kernel_t));
 
     uint8_t preimage[DIGEST_LENGTH];
-    //random_buffer(preimage, 32);
+#ifdef BEAM_DEBUG
     test_set_buffer(preimage, DIGEST_LENGTH, 3);
+#else
+    random_buffer(preimage, 32);
+#endif
 
     uint8_t lock_image[DIGEST_LENGTH];
     SHA256_CTX x;
@@ -587,19 +594,24 @@ uint8_t sign_transaction_part_2(scalar_t* res,
 
     // Calculate the Kernel ID
     tx_kernel_t krn;
+    kernel_init(&krn);
     krn.kernel.min_height = tx_data->min_height;
     krn.kernel.max_height = tx_data->max_height;
     krn.kernel.fee = tx_data->fee;
     memcpy(&krn.kernel.tx_element.commitment, &tx_data->kernel_commitment, sizeof(point_t));
+    point_import_nnz(&krn.kernel.signature.nonce_pub, &tx_data->kernel_nonce);
 
     //TODO: get exact size of the hash
     uint8_t kernel_hash_value[DIGEST_LENGTH];
     kernel_get_hash(&krn, NULL, kernel_hash_value);
 
+    uint8_t sk_data[DIGEST_LENGTH];
+    scalar_get_b32(sk_data, sk_total);
+
     // Create partial signature
 
     ecc_signature_t sig;
-    memcpy(&sig.nonce_pub, &tx_data->kernel_nonce, sizeof(secp256k1_gej));
+    point_import_nnz(&sig.nonce_pub, &tx_data->kernel_nonce);
 
     signature_sign_partial(nonce, &sig.nonce_pub, kernel_hash_value, sk_total, res);
 
