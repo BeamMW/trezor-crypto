@@ -9,6 +9,7 @@
 #include "../beam/inner_product.h"
 #include "definitions_test.h"
 
+#define BEAM_DEBUG 1
 #define START_TEST(func)                                                                                     \
   do {                                                                                                       \
     printf(ANSI_COLOR_MAGENTA "Test set has been started: " ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, #func); \
@@ -368,6 +369,72 @@ void test_common(void)
   free(owner_key_encoded);
 }
 
+void test_transaction_signature(void)
+{
+    init_context();
+
+    HKdf_t kdf;
+    uint8_t kdf_seed[DIGEST_LENGTH];
+    test_set_buffer(kdf_seed, DIGEST_LENGTH, 3);
+    get_HKdf(0, kdf_seed, &kdf);
+
+    kidv_vec_t outputs;
+
+    vec_init(&inputs);
+    vec_init(&outputs);
+
+    {
+        key_idv_t kidv;
+        key_idv_init(&kidv);
+
+        kidv.value = 350000;
+        vec_push(&inputs, kidv);
+
+        kidv.value = 250000;
+        vec_push(&inputs, kidv);
+
+        kidv.value = 170000;
+        vec_push(&outputs, kidv);
+    }
+
+    // Set transaction data
+    transaction_data_t tx_data;
+    tx_data.fee = 100;
+    tx_data.min_height = 25000;
+    tx_data.max_height = 27500;
+
+    test_set_buffer(tx_data.kernel_nonce.x, DIGEST_LENGTH, 3);
+    tx_data.kernel_nonce.y = 1;
+
+    test_set_buffer(tx_data.kernel_commitment.x, DIGEST_LENGTH, 3);
+    tx_data.kernel_commitment.y = 1;
+
+    tx_data.nonce_slot = 6;
+
+    scalar_set_int(&tx_data.offset, 3);
+
+    scalar_t sk_total;
+    scalar_clear(&sk_total);
+    int64_t value_transferred = 0;
+
+    sign_transaction_part_1(&value_transferred, &sk_total,
+                            &inputs, &outputs, &tx_data,
+                            &kdf);
+
+    scalar_t res_sk;
+    scalar_clear(&res_sk);
+
+    scalar_t nonce;
+    scalar_set_int(&nonce, 3);
+
+    sign_transaction_part_2(&res_sk, &tx_data, &nonce, &sk_total);
+    verify_scalar_data("HW Wallet test. Sign tx scalar: ", "6d4c6b0b7ed84aabada60942207b7318b206e904d68ec4c3807b51838eda7acc", &res_sk);
+
+    vec_deinit(&inputs);
+    vec_deinit(&outputs);
+    free_context();
+}
+
 int main(void)
 {
   random_reseed(time(NULL));
@@ -379,6 +446,7 @@ int main(void)
   START_TEST(test_range_proof_confidential);
   START_TEST(test_tx_kernel);
   START_TEST(test_key_generation);
+  START_TEST(test_transaction_signature);
 
   free_context();
   malloc_stats();

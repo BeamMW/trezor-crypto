@@ -243,7 +243,6 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
 
     SHA256_CTX hp;
     sha256_Init(&hp);
-    //if (fee)
     sha256_write_64(&hp, kernel->kernel.fee);
     sha256_write_64(&hp, kernel->kernel.min_height);
     sha256_write_64(&hp, kernel->kernel.max_height);
@@ -276,7 +275,6 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     if (excess)
         secp256k1_gej_set_infinity(&point_excess_nested);
 
-    //TODO<Kirill A>
     const tx_kernel_t* zero_kernel = NULL;
     UNUSED(zero_kernel);
     for (size_t i = 0; i < (size_t)kernel->nested_kernels.length; ++i)
@@ -284,7 +282,7 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
         const uint8_t should_break = 0;
         sha256_write_8(&hp, should_break);
 
-        //TODO: to implement
+        //TODO: to implement. Do we really need this on Trezor?
         //const TxKernel& v = *(*it);
         //if (p0Krn && (*p0Krn > v))
         //    return false;
@@ -607,6 +605,17 @@ uint8_t sign_transaction_part_2(scalar_t* res,
 
     uint8_t sk_data[DIGEST_LENGTH];
     scalar_get_b32(sk_data, sk_total);
+
+#ifdef BEAM_TREZOR_DEBUG
+    DEBUG_PRINT("Sk total: ", sk_data, DIGEST_LENGTH);
+    printf("Kernel:\n\tFee: %ld\n\tMin_height: %ld; Max_height: %ld\n\tAsset_emission: %ld\n",
+           krn.kernel.fee, krn.kernel.min_height, krn.kernel.max_height, krn.kernel.asset_emission);
+    DEBUG_PRINT("Kernel nonce_pub.x: ", tx_data->kernel_nonce.x, DIGEST_LENGTH);
+    printf("\tKernel nonce_pub.y: %d\n", tx_data->kernel_nonce.y);
+    DEBUG_PRINT("Kernel commitment.x: ", krn.kernel.tx_element.commitment.x, DIGEST_LENGTH);
+    printf("\tKernel commitment.y: %d\n", krn.kernel.tx_element.commitment.y);
+    DEBUG_PRINT("Kernel hash: ", kernel_hash_value, DIGEST_LENGTH);
+#endif
 
     // Create partial signature
 
