@@ -61,7 +61,7 @@ void key_idv_init(key_idv_t* kidv)
 #ifdef BEAM_DEBUG
     test_set_buffer((uint8_t*)&kidv->id.idx, sizeof(kidv->id.idx), 0);
 #else
-    random_buffer((uint8_t*)&kidv.id.idx, sizeof(kidv.id.idx));
+    random_buffer((uint8_t*)&kidv->id.idx, sizeof(kidv->id.idx));
 #endif
     kidv->id.sub_idx = 0;
     kidv->id.type = get_context()->key.Regular;

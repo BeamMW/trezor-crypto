@@ -378,6 +378,7 @@ void test_transaction_signature(void)
     test_set_buffer(kdf_seed, DIGEST_LENGTH, 3);
     get_HKdf(0, kdf_seed, &kdf);
 
+    kidv_vec_t inputs;
     kidv_vec_t outputs;
 
     vec_init(&inputs);
