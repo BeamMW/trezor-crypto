@@ -97,13 +97,14 @@ int test_tx_kernel(void)
 
     // Test Add Input
     peer_add_input(&transaction.inputs, &peer_sk, 100, &kdf, NULL);
-    verify_scalar_data("Peer sk data: ", "ce14a6bd640c284fc4c97f3eb2d8f99569c151bce08e0033f395814cb39b4d05", &peer_sk);
+    verify_scalar_data("Peer sk data: ", "72644062a0703bbe61c5cadc1ec5fdad2b32dfe9684909b0f339ba825fb3f103", &peer_sk);
     peer_add_input(&transaction.inputs, &peer_sk, 3000, &kdf, NULL);
+    verify_scalar_data("Peer sk data: ", "c25325ec65ebbfcd5297bfb1f8a37c14d63283085f3703e6afa62cfa9c68bfeb", &peer_sk);
     peer_add_input(&transaction.inputs, &peer_sk, 2000, &kdf, NULL);
-    verify_scalar_data("Peer sk data: ", "8b353049229348f3b04e841b7b8f19941303712b07acf9a90c0eaacd51fb3c98", &peer_sk);
+    verify_scalar_data("Peer sk data: ", "2ebd4b44494ef4344a7199da37c54ffc24ca31a094ff5b8a33c433403f771dfc", &peer_sk);
 
     peer_add_output(&transaction.outputs, &peer_sk, 100, &kdf, NULL);//REALLY NULL?!
-    verify_scalar_data("Peer sk data (after out): ", "bd20898bbe8720a3eb8504dcc8b61ffd63f0fc54d66799b0d84b880d6e9630d4", &peer_sk);
+    verify_scalar_data("Peer sk data (after out): ", "bc590ae1a8deb875e8abcefe18ff524db4462e9ddbfef215005cd74aaff96e3a", &peer_sk);
 
     uint8_t *pub_checksum = transaction.outputs.data[0]->public_proof->recovery.checksum;
     int is_rangeproof_public = !memis0(pub_checksum, 32);
@@ -155,15 +156,15 @@ int test_tx_kernel(void)
     DEBUG_PRINT("Kernel commitment Y:", ((uint8_t *)&kernel.kernel.tx_element.commitment.y), 1);
     VERIFY_TEST(IS_EQUAL_HEX("531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337", kernel.kernel.tx_element.commitment.x, DIGEST_LENGTH * 2));
     VERIFY_TEST(kernel.kernel.tx_element.commitment.y == 1);
-    verify_scalar_data("Transaction offset: ", "c0238c8ec18a23a6ee8807dfcbb9230066f3ff57d96a9cb3db4e8b10719933d7", &transaction.offset);
-    DEBUG_PRINT("Hash lock msg: ", kernel_hash_message, DIGEST_LENGTH);
-    VERIFY_TEST(IS_EQUAL_HEX("d729163b2cd6e4345f795d0b7341ef30cbd96d9c38bd2e6341f50519af9d7190", kernel_hash_message, DIGEST_LENGTH * 2));
+    verify_scalar_data("Transaction offset: ", "bf5c0de4abe1bb78ebaed2011c025550b74931a0df01f518035fda4db2fc713d", &transaction.offset);
+    DEBUG_PRINT("Kernel hash lock message: ", kernel_hash_message, DIGEST_LENGTH);
+    VERIFY_TEST(IS_EQUAL_HEX("8e96400ddbf9c147bc4683e847e0d2a17e7906129363c82f781916029186e5eb", kernel_hash_message, DIGEST_LENGTH * 2));
 
     cosign_kernel_part_2(&kernel,
                          &xG,
                          &peer_sk, &peer_nonce, 1,
                          kernel_hash_message);
-    verify_scalar_data("CoSignKernel - pt2. Sig sk: ", "ac0cdbf0769737e7cd3e2c36bf559f948c80236e8fac0fd713df65ca4eec8f67", &kernel.kernel.signature.k);
+    verify_scalar_data("CoSignKernel - pt2. Sig sk: ", "46b7c27d91961e442b6857b6be21f07a4d58fd9b1561d8e8330d2ee854dba0c7", &kernel.kernel.signature.k);
 
     transaction_free(&transaction);
 
@@ -172,7 +173,7 @@ int test_tx_kernel(void)
 
 void test_key_generation(void)
 {
-    uint8_t seed[DIGEST_LENGTH];	
+    uint8_t seed[DIGEST_LENGTH];
     phrase_to_seed("edge video genuine moon vibrant hybrid forum climb history iron involve sausage", seed);
     HKdf_t kdf;
     get_HKdf(0, seed, &kdf);
@@ -187,7 +188,8 @@ void test_key_generation(void)
     export_gej_to_point(&commitment, &image);
     DEBUG_PRINT("Generated key X:", image.x, DIGEST_LENGTH);
     DEBUG_PRINT("Generated key Y:", ((uint8_t *)&image.y), 1);
-    VERIFY_TEST(IS_EQUAL_HEX("77874f7670516f293856d8f10c086e252936f495364cfe20f5e02f312b17dc2c", image.x, DIGEST_LENGTH));
+    VERIFY_TEST(IS_EQUAL_HEX("a1adc5fbecb22ee47e7136de7ab44eff072004bcee43dfc7723deb9662b2f69f", image.x, DIGEST_LENGTH));
+    VERIFY_TEST(image.y == 0);
 }
 
 void test_range_proof_confidential(void)
