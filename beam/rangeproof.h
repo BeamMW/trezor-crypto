@@ -77,6 +77,35 @@ typedef struct
 
 typedef struct
 {
+  struct
+  {
+    point_t a;
+    point_t s;
+  } part1;
+
+  struct
+  {
+    point_t t1;
+    point_t t2;
+  } part2;
+
+  struct
+  {
+    scalar_packed_t tauX;
+  } part3;
+
+  struct
+  {
+    point_t LR[INNER_PRODUCT_N_CYCLES][2];
+    scalar_packed_t condensed[2];
+  } p_tag;
+
+  scalar_packed_t mu;
+  scalar_packed_t tDot;
+} rangeproof_confidential_packed_t;
+
+typedef struct
+{
   scalar_t x, y, z;
   scalar_t y_inv, zz;
 } rangeproof_confidential_challenge_set_t;
@@ -130,5 +159,7 @@ void rangeproof_confidential_multi_sig_init(rangeproof_confidential_multi_sig_t 
 void rangeproof_confidential_multi_sig_add_info1(rangeproof_confidential_multi_sig_t *msig, secp256k1_gej *pt_t1, secp256k1_gej *pt_t2);
 
 void rangeproof_confidential_multi_sig_add_info2(rangeproof_confidential_multi_sig_t *msig, scalar_t *taux, const scalar_t *sk, const rangeproof_confidential_challenge_set_t *cs);
+
+void rangeproof_confidential_pack(rangeproof_confidential_packed_t *dest, rangeproof_confidential_t *src);
 
 #endif //_RANGEPROOF_H_

@@ -265,7 +265,6 @@ void create_derived_nonce(const uint8_t *master, uint8_t idx, uint8_t *derived)
     nonce_generator_export_scalar(&nonce, NULL, 0, &derived_nonce);
 
     scalar_get_b32(derived, &derived_nonce);
-    DEBUG_PRINT("DERIVED ", derived, 32);
   } while (!is_scalar_valid(derived));
 }
 

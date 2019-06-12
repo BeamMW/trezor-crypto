@@ -35,6 +35,8 @@ typedef struct
   uint8_t y;
 } point_t;
 
+typedef uint8_t scalar_packed_t[32];
+
 typedef struct
 {
   uint32_t Comission;

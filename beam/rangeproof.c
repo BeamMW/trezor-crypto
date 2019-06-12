@@ -116,8 +116,11 @@ void rangeproof_create_from_key_idv(const HKdf_t* kdf, uint8_t* out, const key_i
     else
     {
         rangeproof_confidential_t rp;
+        rangeproof_confidential_packed_t rp_packed;
         rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &h_gen);
-        memcpy(out, (void*)&rp, sizeof(rp));
+        rangeproof_confidential_pack(&rp_packed, &rp);
+
+        memcpy(out, (void *)&rp_packed, sizeof(rp_packed));
     }
 }
 
@@ -487,4 +490,19 @@ void rangeproof_confidential_multi_sig_add_info2(rangeproof_confidential_multi_s
   memcpy(&t1, &cs->zz, sizeof(scalar_t));
   scalar_mul(&t1, &t1, sk);
   scalar_add(taux, taux, &t1);
+}
+
+void rangeproof_confidential_pack(rangeproof_confidential_packed_t *dest, rangeproof_confidential_t *src)
+{
+  memcpy(&dest->part1, &src->part1, sizeof(dest->part1));
+  memcpy(&dest->part2, &src->part2, sizeof(dest->part2));
+  scalar_get_b32(dest->part3.tauX, &src->part3.tauX);
+
+  memcpy(dest->p_tag.LR, src->p_tag.LR, sizeof(dest->p_tag.LR));
+  const size_t condensed_count = sizeof(dest->p_tag.condensed) / sizeof(scalar_packed_t);
+  for (size_t i = 0; i < condensed_count; i++)
+    scalar_get_b32(dest->p_tag.condensed[i], &src->p_tag.condensed[i]);
+
+  scalar_get_b32(dest->mu, &src->mu);
+  scalar_get_b32(dest->tDot, &src->tDot);
 }
