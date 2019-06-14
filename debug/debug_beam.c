@@ -158,13 +158,13 @@ int test_tx_kernel(void)
     VERIFY_TEST(kernel.kernel.tx_element.commitment.y == 1);
     verify_scalar_data("Transaction offset: ", "bf5c0de4abe1bb78ebaed2011c025550b74931a0df01f518035fda4db2fc713d", &transaction.offset);
     DEBUG_PRINT("Kernel hash lock message: ", kernel_hash_message, DIGEST_LENGTH);
-    VERIFY_TEST(IS_EQUAL_HEX("8e96400ddbf9c147bc4683e847e0d2a17e7906129363c82f781916029186e5eb", kernel_hash_message, DIGEST_LENGTH * 2));
+    VERIFY_TEST(IS_EQUAL_HEX("d729163b2cd6e4345f795d0b7341ef30cbd96d9c38bd2e6341f50519af9d7190", kernel_hash_message, DIGEST_LENGTH * 2));
 
     cosign_kernel_part_2(&kernel,
                          &xG,
                          &peer_sk, &peer_nonce, 1,
                          kernel_hash_message);
-    verify_scalar_data("CoSignKernel - pt2. Sig sk: ", "46b7c27d91961e442b6857b6be21f07a4d58fd9b1561d8e8330d2ee854dba0c7", &kernel.kernel.signature.k);
+    verify_scalar_data("CoSignKernel - pt2. Sig sk: ", "ac0cdbf0769737e7cd3e2c36bf559f948c80236e8fac0fd713df65ca4eec8f67", &kernel.kernel.signature.k);
 
     transaction_free(&transaction);
 
@@ -431,7 +431,7 @@ void test_transaction_signature(void)
     scalar_set_int(&nonce, 3);
 
     sign_transaction_part_2(&res_sk, &tx_data, &nonce, &sk_total);
-    verify_scalar_data("HW Wallet test. Sign tx scalar: ", "6d4c6b0b7ed84aabada60942207b7318b206e904d68ec4c3807b51838eda7acc", &res_sk);
+    verify_scalar_data("HW Wallet test. Sign tx scalar: ", "f2381d7329c680eb1afe31f01201c6da30c90790f4130a757a3c3607e7b19838", &res_sk);
 
     vec_deinit(&inputs);
     vec_deinit(&outputs);

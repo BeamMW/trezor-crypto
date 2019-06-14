@@ -251,9 +251,7 @@ int kernel_traverse(const tx_kernel_t* kernel, const tx_kernel_t* parent_kernel,
     sha256_write_64(&hp, kernel->kernel.asset_emission);
     const uint8_t is_empty_kernel_hash_lock_preimage = memis0(kernel->kernel.hash_lock_preimage, DIGEST_LENGTH);
     const uint8_t is_non_empty_kernel_hash_lock_preimage = ! is_empty_kernel_hash_lock_preimage;
-    //sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
-    //printf("Is non-empty hashlock: %u\n", is_non_empty_kernel_hash_lock_preimage);
-    //printf("Is empty hashlock: %u\n", is_empty_kernel_hash_lock_preimage);
+    sha256_write_8(&hp, is_non_empty_kernel_hash_lock_preimage);
 
     if (is_non_empty_kernel_hash_lock_preimage)
     {
