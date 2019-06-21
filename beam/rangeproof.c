@@ -115,6 +115,11 @@ void rangeproof_create_from_key_idv(const HKdf_t* kdf, uint8_t* out, const key_i
     }
     else
     {
+        // prepare output
+        uint64_t incubation = 0;
+        sha256_write_64(&oracle, incubation);
+        sha256_oracle_update_pt(&oracle, &commitment);
+
         rangeproof_confidential_t rp;
         rangeproof_confidential_packed_t rp_packed;
         rangeproof_confidential_create(&rp, &sk, &crp, &oracle, &h_gen);
