@@ -483,10 +483,8 @@ void summarize_once(scalar_t* res, int64_t* d_val_out, const key_idv_t* kidv, co
     int64_t d_val = *d_val_out;
 
     scalar_t sk;
-    secp256k1_gej h_gen;
-    switch_commitment(NULL, &h_gen);
     secp256k1_gej commitment_native;
-    switch_commitment_create(&sk, &commitment_native, kdf, kidv, 1, &h_gen);
+    switch_commitment_create(&sk, &commitment_native, kdf, kidv, 1, NULL);
     // Write results - commitment_native - to TxOutput
     //export_gej_to_point(&commitment_native, &output->tx_element.commitment);
 
@@ -568,7 +566,9 @@ uint8_t sign_transaction_part_1(int64_t* value_transferred, scalar_t* sk_total,
     if (! is_valid_nonce_slot(tx_data->nonce_slot))
         return 0;
 
-    memcpy(sk_total, &tx_data->offset, sizeof(scalar_t));
+    scalar_t offset;
+    scalar_negate(&offset, &tx_data->offset);
+    memcpy(sk_total, &offset, sizeof(scalar_t));
     int64_t d_val = 0;
 
     // calculate the overall blinding factor, and the sum being sent/transferred
@@ -583,8 +583,6 @@ uint8_t sign_transaction_part_2(scalar_t* res,
                                 const transaction_data_t* tx_data,
                                 const scalar_t* nonce, const scalar_t* sk_total)
 {
-    // TODO: Ask user permission to send/receive the value transferred BEFORE this step is called
-
     if (! is_valid_nonce_slot(tx_data->nonce_slot))
         return 0;
 
