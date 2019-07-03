@@ -431,7 +431,7 @@ void test_transaction_signature(void)
     scalar_set_int(&nonce, 3);
 
     sign_transaction_part_2(&res_sk, &tx_data, &nonce, &sk_total);
-    verify_scalar_data("HW Wallet test. Sign tx scalar: ", "f2381d7329c680eb1afe31f01201c6da30c90790f4130a757a3c3607e7b19838", &res_sk);
+    verify_scalar_data("HW Wallet test. Sign tx scalar: ", "007edf32385721084a78f1b8b8d9bc8e377aa2787be38b37e28361fdaf06780c", &res_sk);
 
     vec_deinit(&inputs);
     vec_deinit(&outputs);
