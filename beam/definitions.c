@@ -39,17 +39,8 @@ const uint8_t const_raw_H[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00};
 
-secp256k1_gej *get_generator_G(void)
-{
-  return (secp256k1_gej *)const_raw_G;
-}
+secp256k1_gej *get_generator_G(void) { return (secp256k1_gej *)const_raw_G; }
 
-secp256k1_gej *get_generator_J(void)
-{
-  return (secp256k1_gej *)const_raw_J;
-}
+secp256k1_gej *get_generator_J(void) { return (secp256k1_gej *)const_raw_J; }
 
-secp256k1_gej *get_generator_H(void)
-{
-  return (secp256k1_gej *)const_raw_H;
-}
+secp256k1_gej *get_generator_H(void) { return (secp256k1_gej *)const_raw_H; }

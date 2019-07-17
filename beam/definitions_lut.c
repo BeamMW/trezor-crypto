@@ -31753,17 +31753,14 @@ const uint8_t const_lut_H[] = {
     0x2a, 0x3d, 0x52, 0x03, 0x7a, 0x62, 0xbb, 0x01, 0x50, 0x55, 0x31, 0x00,
     0x00, 0x00, 0x00, 0x00};
 
-secp256k1_gej *get_generator_lut_G(void)
-{
+secp256k1_gej *get_generator_lut_G(void) {
   return (secp256k1_gej *)const_lut_G;
 }
 
-secp256k1_gej *get_generator_lut_J(void)
-{
+secp256k1_gej *get_generator_lut_J(void) {
   return (secp256k1_gej *)const_lut_J;
 }
 
-secp256k1_gej *get_generator_lut_H(void)
-{
+secp256k1_gej *get_generator_lut_H(void) {
   return (secp256k1_gej *)const_lut_H;
 }

@@ -14,31 +14,34 @@
 #define N_BITS (N_BYTES << 3)
 // #define N_BITS_PER_LEVEL 4
 #define N_BITS_PER_LEVEL 2
-#define N_POINTS_PER_LEVEL (1 << N_BITS_PER_LEVEL) //16
+#define N_POINTS_PER_LEVEL (1 << N_BITS_PER_LEVEL)  // 16
 #define N_LEVELS (N_BITS / N_BITS_PER_LEVEL)
 #define MASTER_NONCE_SLOT 0
 #define MAX_NONCE_SLOT 255
 
 #define _COUNT_OF(_Array) (sizeof(_Array) / sizeof(_Array[0]))
-#define _FOURCC_CONST(a, b, c, d) ((uint32_t)((((((uint8_t)a << 8) | (uint8_t)b) << 8) | (uint8_t)c) << 8) | (uint8_t)d)
-#define _ARRAY_ELEMENT_SAFE(arr, index) ((arr)[(((index) < _COUNT_OF(arr)) ? (index) : (_COUNT_OF(arr) - 1))])
-#define _FOURCC_FROM(name) _FOURCC_CONST(_ARRAY_ELEMENT_SAFE(#name, 0), _ARRAY_ELEMENT_SAFE(#name, 1), _ARRAY_ELEMENT_SAFE(#name, 2), _ARRAY_ELEMENT_SAFE(#name, 3))
+#define _FOURCC_CONST(a, b, c, d)                                            \
+  ((uint32_t)((((((uint8_t)a << 8) | (uint8_t)b) << 8) | (uint8_t)c) << 8) | \
+   (uint8_t)d)
+#define _ARRAY_ELEMENT_SAFE(arr, index) \
+  ((arr)[(((index) < _COUNT_OF(arr)) ? (index) : (_COUNT_OF(arr) - 1))])
+#define _FOURCC_FROM(name)                                                    \
+  _FOURCC_CONST(_ARRAY_ELEMENT_SAFE(#name, 0), _ARRAY_ELEMENT_SAFE(#name, 1), \
+                _ARRAY_ELEMENT_SAFE(#name, 2), _ARRAY_ELEMENT_SAFE(#name, 3))
 
-#define static_assert(condition)((void)sizeof(char[1 - 2 * !(condition)]))
+#define static_assert(condition)((void) sizeof(char[1 - 2 * !(condition)]))
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)
 #endif
 
-typedef struct
-{
+typedef struct {
   uint8_t x[DIGEST_LENGTH];
   uint8_t y;
 } point_t;
 
 typedef uint8_t scalar_packed_t[32];
 
-typedef struct
-{
+typedef struct {
   uint32_t Comission;
   uint32_t Coinbase;
   uint32_t Regular;
@@ -52,58 +55,50 @@ typedef struct
   uint32_t Treasury;
 } key_types_t;
 
-typedef struct
-{
+typedef struct {
   secp256k1_gej *G_pts;
   secp256k1_gej *J_pts;
   secp256k1_gej *H_pts;
 } generators_t;
 
-typedef struct
-{
+typedef struct {
   key_types_t key;
   generators_t generator;
 } context_t;
 
-typedef struct
-{
+typedef struct {
   scalar_t cofactor;
   // according to rfc5869
   uint8_t generator_secret[DIGEST_LENGTH];
 } HKdf_t;
 
 #pragma pack(push, 1)
-typedef struct
-{
+typedef struct {
   uint8_t secret[DIGEST_LENGTH];
   point_t pkG;
   point_t pkJ;
 } HKdf_pub_packed_t;
 #pragma pack(pop)
 
-typedef struct
-{
+typedef struct {
   secp256k1_gej nonce_pub;
   scalar_t k;
 } ecc_signature_t;
 
-typedef struct
-{
+typedef struct {
   uint64_t idx;
   uint32_t type;
   uint32_t sub_idx;
 } key_id_t;
 
-typedef struct
-{
+typedef struct {
   key_id_t id;
   uint64_t value;
 } key_idv_t;
 typedef vec_t(key_idv_t) kidv_vec_t;
 
 #pragma pack(push, 1)
-typedef struct
-{
+typedef struct {
   uint8_t idx[8];
   uint8_t type[4];
   uint8_t sub_idx[4];
@@ -111,11 +106,10 @@ typedef struct
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-  typedef struct
-  {
-    packed_key_id_t id;
-    uint8_t value[8];
-  } packed_key_idv_t;
+typedef struct {
+  packed_key_id_t id;
+  uint8_t value[8];
+} packed_key_idv_t;
 #pragma pack(pop)
 
 secp256k1_gej *get_generator_lut_G(void);
@@ -136,4 +130,4 @@ secp256k1_gej *get_generator_get1_minus(void);
 
 secp256k1_gej *get_generator_dot_ipp(void);
 
-#endif //_TYPES_H_
+#endif  //_TYPES_H_
