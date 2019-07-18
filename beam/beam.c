@@ -1,7 +1,3 @@
-#ifndef BEAM_DEBUG
-#include "mpconfigport.h"
-#endif
-
 #include "beam.h"
 #include "functions.h"
 #include "kernel.h"

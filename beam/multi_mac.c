@@ -1,3 +1,7 @@
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
+
 #include "multi_mac.h"
 
 void multi_mac_reset(multi_mac_t *mm) {

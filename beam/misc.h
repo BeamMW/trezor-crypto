@@ -1,10 +1,6 @@
 #ifndef __BEAM_MISC__
 #define __BEAM_MISC__
 
-#ifndef BEAM_DEBUG
-#include "mpconfigport.h"
-#endif
-
 #include "definitions.h"
 #include "kernel.h"
 #include "rangeproof.h"

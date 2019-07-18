@@ -1,10 +1,6 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#ifndef BEAM_DEBUG
-#include "mpconfigport.h"
-#endif
-
 #include "lib/group.h"
 #include "lib/scalar32.h"
 #include "lib/vec.h"

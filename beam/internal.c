@@ -1,3 +1,7 @@
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
+
 #include "internal.h"
 #include <string.h>
 #include "../aes/aes.h"

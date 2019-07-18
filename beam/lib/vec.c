@@ -5,6 +5,10 @@
  * under the terms of the MIT license. See LICENSE for details.
  */
 
+#ifndef BEAM_DEBUG
+#include "mpconfigport.h"
+#endif
+
 #include "vec.h"
 
 
