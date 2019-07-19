@@ -2,12 +2,12 @@
 #include <malloc.h>
 #include <time.h>
 #include "../beam/functions.h"
-#include "base64.h"
 #include "../beam/rangeproof.h"
 #include "../beam/kernel.h"
 #include "../beam/misc.h"
 #include "../beam/inner_product.h"
-#include "definitions_test.h"
+#include "beam_tools/definitions_test.h"
+#include "beam_tools/base64.h"
 
 #define BEAM_DEBUG 1
 #define START_TEST(func)                                                                                     \

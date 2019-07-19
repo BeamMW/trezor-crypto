@@ -1,5 +1,3 @@
-.PHONY: debug
-
 CC       ?= gcc
 
 OPTFLAGS ?= -O3 -g
@@ -82,12 +80,12 @@ OBJS   = $(SRCS:.c=.o)
 TESTLIBS = $(shell pkg-config --libs check) -lpthread -lm
 TESTSSLLIBS = $(shell pkg-config --libs openssl)
 
-all: tools tests debug
+all: tools tests
 
 %.o: %.c %.h options.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-tests: tests/test_check tests/test_openssl tests/test_speed tests/libtrezor-crypto.so tests/aestst
+tests: tests/test_check tests/test_openssl tests/test_speed tests/libtrezor-crypto.so tests/aestst tests/test_check_beam
 
 tests/aestst: aes/aestst.o aes/aescrypt.o aes/aeskey.o aes/aestab.o
 	$(CC) $^ -o $@
@@ -103,6 +101,9 @@ tests/test_speed: tests/test_speed.o $(OBJS)
 tests/test_openssl: tests/test_openssl.o $(OBJS)
 	$(CC) tests/test_openssl.o $(OBJS) $(TESTSSLLIBS) -o tests/test_openssl
 
+tests/test_check_beam: tests/beam_tools/base64.o tests/beam_tools/definitions_test.o tests/test_check_beam.o $(OBJS)
+	$(CC) -o tests/test_check_beam -I. tests/beam_tools/base64.o tests/beam_tools/definitions_test.o tests/test_check_beam.o $(OBJS)
+
 tests/libtrezor-crypto.so: $(SRCS)
 	$(CC) $(CFLAGS) -DAES_128 -DAES_192 -fPIC -shared $(SRCS) -o tests/libtrezor-crypto.so
 
@@ -117,19 +118,9 @@ tools/mktable: tools/mktable.o $(OBJS)
 tools/bip39bruteforce: tools/bip39bruteforce.o $(OBJS)
 	$(CC) tools/bip39bruteforce.o $(OBJS) -o tools/bip39bruteforce
 
-debug: debug/debug_beam
-
-debug/debug_beam.o: debug/debug_beam.c
-
-debug/base64.o: debug/base64.c
-
-debug/definitions_test.o: debug/definitions_test.c
-
-debug/debug_beam: debug/base64.o debug/definitions_test.o debug/debug_beam.o $(OBJS)
-	$(CC) -o debug/debug_beam debug/base64.o debug/definitions_test.o debug/debug_beam.o $(OBJS)
-
 clean:
 	rm -f *.o aes/*.o chacha20poly1305/*.o ed25519-donna/*.o
 	rm -f tests/test_check tests/test_speed tests/test_openssl tests/libtrezor-crypto.so tests/aestst
 	rm -f tools/*.o tools/xpubaddrgen tools/mktable tools/bip39bruteforce
-	rm -f beam/*.o beam/lib/*.o debug/*.o debug/debug_beam
+	rm -f beam/*.o beam/lib/*.o
+	rm -f tests/test_check_beam tests/test_check_beam.o tests/beam_tools/*.o
