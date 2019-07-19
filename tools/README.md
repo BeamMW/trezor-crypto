@@ -1,54 +1,44 @@
-trezor-crypto tools
-===================
+# trezor-crypto
 
-Set of small utilities using the trezor-crypto library.
+[![Build Status](https://travis-ci.org/trezor/trezor-crypto.svg?branch=master)](https://travis-ci.org/trezor/trezor-crypto) [![gitter](https://badges.gitter.im/trezor/community.svg)](https://gitter.im/trezor/community)
 
-xpubaddrgen
------------
+Heavily optimized cryptography algorithms for embedded devices.
 
-xpubaddrgen reads job specification from stdin in format:
+These include:
+- AES/Rijndael encryption/decryption
+- Big Number (256 bit) Arithmetics
+- BIP32 Hierarchical Deterministic Wallets
+- BIP39 Mnemonic code
+- ECDSA signing/verifying (supports secp256k1 and nist256p1 curves,
+  uses RFC6979 for deterministic signatures)
+- ECDSA public key derivation
+- Base32 (RFC4648 and custom alphabets)
+- Base58 address representation
+- Ed25519 signing/verifying (also SHA3 and Keccak variants)
+- ECDH using secp256k1, nist256p1 and Curve25519
+- HMAC-SHA256 and HMAC-SHA512
+- PBKDF2
+- RIPEMD-160
+- SHA1
+- SHA2-256/SHA2-512
+- SHA3/Keccak
+- BLAKE2s/BLAKE2b
+- Chacha20-Poly1305
+- unit tests (using Check - check.sf.net; in test_check.c)
+- tests against OpenSSL (in test_openssl.c)
+- integrated Wycheproof tests
 
-```
-<jobid> <xpub> <change> <from> <to>
-```
+Distibuted under MIT License.
 
-and prints the results to stdout in format:
+## Some parts of the library come from external sources:
 
-```
-<jobid> <index> <address>
-```
-
-Example input:
-
-```
-23 xpub6BcjTvRCYD4VvFQ8whztSXhbNyhS56eTd5P3g9Zvd3zPEeUeL5CUqBYX8NSd1b6Thitr8bZcSnesmXZH7KerMcc4tUkenBShYCtQ1L8ebVe 0 0 5
-42 xpub6AT2YrLinU4Be5UWUxMaUz3zTA99CSGvXt1jt2Lgym8PqXbTzmpQ8MHjoLnx8YJiMMUP5iEfR97YQVmgF6B2tAhbCZrXqn65ur526NkZ6ey 1 1000 1005
-```
-
-Example output:
-
-```
-23 0 14vb5Cws75p2i5rmSiF5CKMyezUX4hxSb9
-23 1 1Lf4ciA36dsi1niF6smVcpCiHcpj2skaPq
-23 2 1LraByp7gQAipvHnFS1gTSzixBtYaVyQGp
-23 3 1Hy6n56qZj1EefLVfDAeEpmveNteY9jpiG
-23 4 183Nn4mrUjPizM3xu8C6SrmViaWrk8YyRS
-42 1000 12eAFGAqGUtszc9R7euRqk7DUcQNXvQZSg
-42 1001 1BrLbFCD3MNYedJaz92U9iqy9ukHrtQ1A6
-42 1002 1Jhv33bJy229ThM7HKxUa92cMK5gi7DyPC
-42 1003 13LxbTjQPByisj4F4sZEivUBdnJwigzg6R
-42 1004 1BWBpSWkPwcKxVr2WDyUqQbmvk5SGihcx9
-```
-
-It will print ```<jobid> error``` when there was an error processing job jobid.
-
-It will print ```error``` when it encountered a malformed line.
-
-
-mktable
------------
-
-mktable computes the points of the form `(2*j+1)*16^i*G` and prints them in the format to be included in `secp256k1.c` and `nist256p1.c`.
-These points are used by the fast ECC multiplication.
-
-It is only meant to be run if the `scalar_mult` algorithm changes.
+- AES: https://github.com/BrianGladman/aes
+- Base58: https://github.com/luke-jr/libbase58
+- BLAKE2s/BLAKE2b: https://github.com/BLAKE2/BLAKE2
+- RIPEMD-160: https://github.com/ARMmbed/mbedtls
+- SHA1/SHA2: http://www.aarongifford.com/computers/sha.html
+- SHA3: https://github.com/rhash/RHash
+- Curve25519: https://github.com/agl/curve25519-donna
+- Ed25519: https://github.com/floodyberry/ed25519-donna
+- Chacha20: https://github.com/wg/c20p1305
+- Poly1305: https://github.com/floodyberry/poly1305-donna
